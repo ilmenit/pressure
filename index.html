@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pressure - Strategic Board Game</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Menu Screen -->
+    <div id="menu-screen" class="screen">
+        <h1>Pressure</h1>
+            
+        <div class="menu-content">
+            <div class="menu-left">
+                <h2>Players</h2>
+                <div class="player-select">
+                    <div class="player-control">
+                        <span class="player-label">White Player:</span>
+                        <div class="player-options">
+                            <button class="player-type-btn active" data-player="white" data-type="human">Human</button>
+                            <button class="player-type-btn" data-player="white" data-type="ai">AI</button>
+                        </div>
+                        <div class="ai-level-container white-ai-levels hidden">
+                            <div class="ai-level-selection">
+                                <span class="ai-level-label">Beginner</span>
+                                <div class="ai-level-buttons">
+                                    <button class="ai-level-btn" data-player="white" data-level="1">1</button>
+                                    <button class="ai-level-btn" data-player="white" data-level="2">2</button>
+                                    <button class="ai-level-btn" data-player="white" data-level="3">3</button>
+                                    <button class="ai-level-btn" data-player="white" data-level="4">4</button>
+                                    <button class="ai-level-btn active" data-player="white" data-level="5">5</button>
+                                    <button class="ai-level-btn" data-player="white" data-level="6">6</button>
+                                    <button class="ai-level-btn" data-player="white" data-level="7">7</button>
+                                    <button class="ai-level-btn" data-player="white" data-level="8">8</button>
+                                    <button class="ai-level-btn" data-player="white" data-level="9">9</button>
+                                </div>
+                                <span class="ai-level-label">Expert</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="player-control">
+                        <span class="player-label">Black Player:</span>
+                        <div class="player-options">
+                            <button class="player-type-btn active" data-player="black" data-type="human">Human</button>
+                            <button class="player-type-btn" data-player="black" data-type="ai">AI</button>
+                        </div>
+                        <div class="ai-level-container black-ai-levels hidden">
+                            <div class="ai-level-selection">
+                                <span class="ai-level-label">Beginner</span>
+                                <div class="ai-level-buttons">
+                                    <button class="ai-level-btn" data-player="black" data-level="1">1</button>
+                                    <button class="ai-level-btn" data-player="black" data-level="2">2</button>
+                                    <button class="ai-level-btn" data-player="black" data-level="3">3</button>
+                                    <button class="ai-level-btn" data-player="black" data-level="4">4</button>
+                                    <button class="ai-level-btn active" data-player="black" data-level="5">5</button>
+                                    <button class="ai-level-btn" data-player="black" data-level="6">6</button>
+                                    <button class="ai-level-btn" data-player="black" data-level="7">7</button>
+                                    <button class="ai-level-btn" data-player="black" data-level="8">8</button>
+                                    <button class="ai-level-btn" data-player="black" data-level="9">9</button>
+                                </div>
+                                <span class="ai-level-label">Expert</span>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="menu-buttons">
+                        <button id="start-game-btn" class="large-btn">Start New Game</button>
+                        <button id="resume-game-btn" class="large-btn hidden">Resume Game</button>
+                    </div>
+                </div>
+            </div>
+                
+            <div class="menu-right">
+                <div class="rules-section">
+                    <h2>Game Rules</h2>
+                    <div class="rules-content">
+                        <h3>Token Types</h3>
+                        <!-- Combined white and black tokens in one row -->
+                        <div class="token-example">
+                            <div class="token-container">
+                                <div class="token-mini white"></div>
+                            </div>
+                            <div class="token-container">
+                                <div class="token-mini black"></div>
+                            </div>
+                            <div class="token-description">Active tokens - can be moved on their owner's turn</div>
+                        </div>
+                        
+                        <!-- Combined inactive tokens in one row -->
+                        <div class="token-example">
+                            <div class="token-container">
+                                <div class="token-mini white inactive"></div>
+                            </div>
+                            <div class="token-container">
+                                <div class="token-mini black inactive"></div>
+                            </div>
+                            <div class="token-description">Inactive tokens - cannot move until next turn, but can be pushed</div>
+                        </div>
+                        
+                        <!-- Captured token -->
+                        <div class="token-example">
+                            <div class="token-container">
+                                <div class="token-mini captured"></div>
+                            </div>
+                            <div class="token-description">Captured token - permanently inactive, but can still be pushed</div>
+                        </div>
+                        
+						<h3>Example Push Move</h3>
+						<div class="move-example">
+							<div class="move-label">Before Push:</div>
+							<div class="move-row">
+								<div class="token-container token-with-arrow">
+									<div class="token-mini white"></div>
+									<div class="move-direction-arrow">→</div>
+								</div>
+								<div class="token-container">
+									<div class="token-mini black"></div>
+								</div>
+								<div class="token-container">
+									<div class="token-mini white"></div>
+								</div>
+								<div class="token-container">
+									<div class="token-mini empty"></div>
+								</div>
+							</div>
+							
+							<div class="move-label">After White Pushes Right:</div>
+							<div class="move-row">
+								<div class="token-container">
+									<div class="token-mini empty"></div>
+								</div>
+								<div class="token-container">
+									<div class="token-mini white"></div>
+								</div>
+								<div class="token-container">
+									<div class="token-mini black inactive"></div>
+								</div>
+								<div class="token-container">
+									<div class="token-mini white"></div>
+								</div>
+							</div>
+							<p><small>Note: After push, the black token becomes inactive (red dot) for black's next turn.</small></p>
+						</div>
+                        
+                        <h3>Token Capture Examples</h3>
+                        
+                        <!-- Capture by 4 surrounding tokens -->
+                        <div class="capture-example">
+                            <div class="capture-label">Capture by 4 surrounding tokens:</div>
+                            <div class="capture-grid">
+                                <div class="token-container"></div>
+                                <div class="token-container">
+                                    <div class="token-mini black"></div>
+                                </div>
+                                <div class="token-container"></div>
+                                
+                                <div class="token-container">
+                                    <div class="token-mini white"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini white captured"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini black"></div>
+                                </div>
+                                
+                                <div class="token-container"></div>
+                                <div class="token-container">
+                                    <div class="token-mini white"></div>
+                                </div>
+                                <div class="token-container"></div>
+                            </div>
+                            <p><small>When a token is surrounded on all four sides by any combination of tokens, it is immediately captured (turned blue).</small></p>
+                        </div>
+                        
+                        <!-- Fixed: Capture by board edges + tokens (corner capture) -->
+                        <div class="capture-example">
+                            <div class="capture-label">Capture by board edges + tokens (corner capture):</div>
+                            <div class="capture-grid capture-grid-edge">                                
+                                <div class="token-container">
+                                    <div class="token-mini white"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini black captured"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini white"></div>
+                                </div>
+                                
+                                <div class="token-container"></div>
+                                <div class="token-container">
+                                    <div class="token-mini white"></div>
+                                </div>
+                                <div class="token-container"></div>
+								
+                                <div class="token-container"></div>
+                                <div class="token-container"></div>
+                                <div class="token-container"></div>
+								
+                            </div>
+                            <p><small>A token in the corner can be captured by just 2 tokens because the board edges count as surrounding.</small></p>
+                        </div>
+                        
+                        <h3>Core Rules</h3>
+                        <p><strong>Movement:</strong> On your turn, move one of your tokens to an adjacent space (up, down, left, or right). You cannot move diagonally or move inactive tokens (marked with red).</p>
+                        
+                        <p><strong>Pushing:</strong> When moving into an occupied space, you are "pushing" the whole connected line of tokens. Pushing is only valid if there is an empty space at the end of the line. Both your own and opponent tokens can be pushed.</p>
+                        
+                        <p><strong>Inactivity:</strong> Any opponent tokens that you push become inactive (marked with red) for their next turn. Your own pushed tokens remain active. Inactive tokens cannot be moved but can still be pushed.</p>
+                        
+                        <p><strong>Capture:</strong> When a token is surrounded on all four orthogonal sides (by tokens or board edges), it is immediately captured (turned blue). Captured tokens cannot be moved directly but can be pushed. Once captured, tokens remain captured for the rest of the game.</p>
+                        
+                        <h3>Victory Conditions</h3>
+                        <p>The game ends immediately when either:</p>
+                        <ul>
+                            <li>A player captures all of their opponent's tokens</li>
+                            <li>A player has no legal moves on their turn</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen hidden">
+        <h1>Pressure</h1>
+        
+        <div class="board-container">
+            <div class="board">
+                <!-- Board grid will be created by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="game-controls">
+            <button id="undo-btn">Undo</button>
+            <button id="redo-btn">Redo</button>
+            <button id="menu-btn">Menu</button>
+        </div>
+    </div>
+    
+    <!-- Win Modal -->
+    <div id="win-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="win-modal-title">Game Over</h2>
+            <p id="win-modal-message"></p>
+            <div class="modal-buttons">
+                <button id="win-modal-undo">Undo Last Move</button>
+                <button id="win-modal-menu">Return to Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/board.js"></script>
+    <script src="js/moves.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

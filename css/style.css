@@ -1,0 +1,576 @@
+/* General Styles */
+html, body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #121212;
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+h1, h2, h3 {
+    text-align: center;
+    color: #ffffff;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+h2 {
+    font-size: 1.3rem;
+}
+
+h3 {
+    font-size: 1.1rem;
+}
+
+/* Screen Container */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+/* Menu Screen */
+#menu-screen {
+    z-index: 10;
+}
+
+.menu-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1200px;
+    flex: 1;
+    margin-bottom: 20px;
+}
+
+@media (min-width: 768px) {
+    .menu-content {
+        flex-direction: row;
+        gap: 20px;
+    }
+    
+    .menu-left {
+        width: 40%;
+        min-width: 300px;
+    }
+    
+    .menu-right {
+        width: 60%;
+        flex: 1;
+    }
+}
+
+.menu-left {
+    margin-bottom: 20px;
+}
+
+.player-select {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.player-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.player-label {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.player-options {
+    display: flex;
+    gap: 10px;
+}
+
+.player-type-btn, .ai-level-btn {
+    flex: 1;
+    background-color: #333333;
+    color: #ffffff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.player-type-btn.active, .ai-level-btn.active {
+    background-color: #4A6FA5;
+}
+
+.ai-level-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.ai-level-selection {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.ai-level-label {
+    font-size: 0.8rem;
+    color: #aaaaaa;
+}
+
+.ai-level-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.ai-level-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-level-value {
+    font-weight: bold;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.large-btn {
+    width: 100%;
+    background-color: #4A6FA5;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background-color 0.2s;
+}
+
+.large-btn:hover {
+    background-color: #3A5A80;
+}
+
+.large-btn:disabled {
+    background-color: #666666;
+    cursor: not-allowed;
+}
+
+.rules-section {
+    width: 100%;
+    background-color: #1E1E1E;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-y: auto;
+    max-height: 70vh;
+}
+
+.rules-content h3 {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    text-align: left;
+}
+
+.rules-content p, .rules-content ul {
+    margin: 5px 0;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.rules-content ul {
+    padding-left: 20px;
+}
+
+/* Game Screen */
+#game-screen {
+    z-index: 1;
+    justify-content: space-between;
+}
+
+.board-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 2px;
+    background-color: #333333;
+    padding: 3px;
+    border-radius: 4px;
+    aspect-ratio: 1 / 1;
+    max-width: min(90vmin, 500px);
+    max-height: min(90vmin, 500px);
+    width: 100%;
+}
+
+.cell {
+    background-color: #444444;
+    border-radius: 2px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    aspect-ratio: 1 / 1;
+}
+
+.cell:hover {
+    background-color: #555555;
+}
+
+.cell.highlight {
+    background-color: #665200;
+}
+
+.token {
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    position: relative;
+    transition: transform 0.3s ease;
+}
+
+.token.black {
+    background-color: #222222;
+    border: 2px solid #111111;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.token.white {
+    background-color: #f0f0f0;
+    border: 2px solid #cccccc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.token.captured {
+    background-color: #4a90e2;
+    border: 2px solid #3a7bc8;
+}
+
+/* Fixed: Increased inactive token indicator size to be more visible */
+.token.inactive::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    height: 50%;
+    background-color: rgba(255, 0, 0, 0.7);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.last-move-indicator {
+    position: absolute;
+    background-color: rgba(255, 255, 0, 0.15);
+    width: 100%;
+    height: 100%;
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+.game-controls {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    width: 100%;
+    max-width: 500px;
+    justify-content: center;
+}
+
+.game-controls button {
+    background-color: #333333;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    min-width: 100px;
+}
+
+.game-controls button:hover {
+    background-color: #4A6FA5;
+}
+
+.game-controls button:disabled {
+    background-color: #666666;
+    cursor: not-allowed;
+}
+
+/* Token examples for rules */
+.token-example {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+    gap: 15px;
+}
+
+.token-container {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    background-color: #444444;
+    border-radius: 4px;
+}
+
+.token-mini {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+}
+
+.token-mini.white {
+    background-color: #f0f0f0;
+    border: 2px solid #cccccc;
+}
+
+.token-mini.black {
+    background-color: #222222;
+    border: 2px solid #111111;
+}
+
+.token-mini.captured {
+    background-color: #4a90e2;
+    border: 2px solid #3a7bc8;
+}
+
+.token-mini.inactive {
+    position: relative;
+}
+
+.token-mini.inactive::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    height: 50%;
+    background-color: rgba(255, 0, 0, 0.7);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.token-description {
+    flex: 1;
+}
+
+/* Move example visualization */
+.move-example {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.move-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.move-arrow {
+    font-size: 24px;
+    margin: 0 10px;
+}
+
+.move-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Capture examples */
+.capture-example {
+    margin: 20px 0;
+}
+
+.capture-label {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.capture-grid {
+    display: inline-grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background-color: #333333;
+    padding: 2px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+.capture-row {
+    display: contents;
+}
+
+/* Edge styling for the board edge example */
+.capture-grid-edge {
+    border: 2px solid #666;
+}
+
+.token-container.edge {
+    background-color: #666;
+    border-radius: 0;
+}
+
+/* Win Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.modal-content {
+    background-color: #1E1E1E;
+    border-radius: 8px;
+    padding: 25px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.modal-buttons button {
+    background-color: #4A6FA5;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.modal-buttons button:hover {
+    background-color: #3A5A80;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+/* Responsive Design */
+@media (max-height: 700px) {
+    h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .game-controls button {
+        padding: 8px 20px;
+        font-size: 1rem;
+    }
+}
+
+/* For very small screens */
+@media (max-width: 350px) or (max-height: 500px) {
+    h1 {
+        font-size: 1.3rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    h2 {
+        font-size: 1.1rem;
+    }
+    
+    .player-type-btn, .ai-level-btn {
+        font-size: 0.9rem;
+        padding: 8px 10px;
+    }
+    
+    .game-controls button {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+        min-width: 80px;
+    }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+    .capture-grid {
+        transform: scale(0.9);
+        transform-origin: left top;
+    }
+    
+    .token-example {
+        flex-wrap: wrap;
+    }
+    
+    .token-description {
+        width: 100%;
+        margin-top: 5px;
+    }
+}
+
+/* Styling for the token with arrow indicator */
+.token-with-arrow {
+    position: relative;
+}
+
+.move-direction-arrow {
+    position: absolute;
+    top: 50%;
+    right: -5px;
+    transform: translateY(-50%);
+    color: #FFD700; /* Golden yellow color for visibility */
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}

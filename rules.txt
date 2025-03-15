@@ -1,0 +1,104 @@
+# PRESSURE
+## A Strategic Board Game of Force Mechanics
+
+### Components
+- 5×5 grid board
+- 6 black tokens and 6 white tokens (two-sided with neutral gray backs)
+- 12 small markers to indicate inactive tokens (optional)
+
+### Setup
+1. Place the board between both players
+2. Each player takes their 6 tokens showing their color side
+3. Players arrange their tokens in the following positions:
+
+   **Black tokens:**
+   - a3, a4, b3, b5, c4, c5
+
+   **White tokens:**
+   - c1, c2, d1, d3, e2, e3
+
+   ```
+       a   b   c   d   e
+     ┌───┬───┬───┬───┬───┐
+   5 │   │ ● │ ● │   │   │
+     ├───┼───┼───┼───┼───┤
+   4 │ ● │   │ ● │   │   │
+     ├───┼───┼───┼───┼───┤
+   3 │ ● │ ● │   │ ○ │ ○ │
+     ├───┼───┼───┼───┼───┤
+   2 │   │   │ ○ │   │ ○ │
+     ├───┼───┼───┼───┼───┤
+   1 │   │   │ ○ │ ○ │   │
+     └───┴───┴───┴───┴───┘
+   ```
+4. White moves first
+
+## Core Rules
+
+### 1. Basic Movement
+- On your turn, you must move ONE of your tokens
+- Move directly into an adjacent space (orthogonally: up, down, left, or right)
+- You cannot move diagonally
+- You cannot move inactive tokens (tokens with a red marker)
+- If your destination space is empty, simply move your token there
+- If your destination space is occupied, you are attempting to "push" and must follow the pushing rules
+
+### 2. Pushing
+- Pushing occurs when you move your token into an occupied space
+- You can push both your tokens and opponent tokens
+- You can only push if there is an empty space at the end of the connected line
+- Your moving token is pushing the whole connected line.
+- Any opponent tokens that are pushed become inactive for their next turn
+- Your own tokens never become inactive from your pushing
+
+**Push Example** 
+```
+Before: [W][W][B][W][ ]
+After:  [W][ ][W][B][W]
+```
+The middle White token can push connected tokens to the right, because there is a space after the connected tokens. The pushed Black token becomes inactive.
+
+### 5. Inactivity
+- Enemy tokens that are pushed become inactive for their owner's next turn
+- Inactive tokens are marked with a small red marker
+- Inactive tokens cannot be moved but can still be pushed by either player
+- At the end of each player's turn, all their inactive tokens become active again
+
+### 6. Capture
+- When a token becomes completely surrounded on all four orthogonal sides (by any combination of tokens or board edges), it is immediately flipped to its captured blue side
+- Captured (blue) tokens cannot be moved directly by either player
+- Captured tokens can be pushed as part of a connected line
+- Captured tokens still can be used to surround enemy tokens
+- Once captured, tokens remain captured for the rest of the game
+
+**Capture Example:**
+```
+   [B]
+[W][W][B]
+   [W]
+```
+The White token in the center is surrounded on all four sides and is immediately captured (turned blue).
+
+**Board Edge Capture Example:**
+```
+[E][B]
+[E][W][B]   
+[E][W]
+
+[E] represents board edge
+```
+The White token is surrounded on all four sides (three by tokens and one by the board edge) and is captured (turned blue).
+
+## Victory Conditions
+The game ends immediately when either:
+1. A player captures all enemy tokens
+2. A player has no legal moves on their turn
+3. A player surrenders
+
+## Clarifications
+
+### Connected Line of Tokens
+- Tokens are "connected" when they are adjacent to each other in a straight line
+- There can be no gaps in a connected line
+- Example of a connected line: [W][W][B]
+- Example of tokens that are NOT a connected line: [W][ ][B]
