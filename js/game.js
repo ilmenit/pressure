@@ -221,7 +221,7 @@ class Game {
             
             // Update game status for next player
             this.ui.updateGameStatus();
-        }, 50);
+        }, 300); // Increased delay to ensure thinking indicator has time to show "Move selected" message
     }
 
     /**

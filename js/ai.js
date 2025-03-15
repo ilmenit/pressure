@@ -10,7 +10,7 @@ class AIPlayer {
         this.nodesEvaluated = 0;
         this.isThinking = false;
         this.thinkingStartTime = 0;
-        this.MIN_THINKING_DISPLAY_TIME = 800; // Minimum time to show thinking indicator (ms)
+        this.MIN_THINKING_DISPLAY_TIME = 1500; // Increased minimum time to show thinking indicator (ms)
     }
 
     /**
@@ -37,14 +37,15 @@ class AIPlayer {
         console.time('AI thinking time');
         
         if (possibleMoves.length === 0) {
-            this.hideThinkingAfterDelay(400);
+            this.hideThinkingAfterDelay(this.MIN_THINKING_DISPLAY_TIME);
             console.timeEnd('AI thinking time');
             return null;
         }
         
         // If only one move is available, return it immediately
         if (possibleMoves.length === 1) {
-            this.hideThinkingAfterDelay(400);
+            this.updateThinkingIndicator("Move selected");
+            this.hideThinkingAfterDelay(this.MIN_THINKING_DISPLAY_TIME);
             console.timeEnd('AI thinking time');
             return possibleMoves[0];
         }
@@ -105,8 +106,11 @@ class AIPlayer {
         console.log(`AI evaluated ${this.nodesEvaluated} positions at depth ${searchDepth}`);
         console.timeEnd('AI thinking time');
         
+        // Update the thinking indicator to show that a move has been selected
+        this.updateThinkingIndicator("Move selected");
+        
         // Hide thinking indicator with minimum display time
-        this.hideThinkingAfterDelay(400);
+        this.hideThinkingAfterDelay(this.MIN_THINKING_DISPLAY_TIME);
         
         // For lower difficulties, introduce randomness
         if (this.difficulty <= 3 && evaluatedMoves.length > 1) {

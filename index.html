@@ -76,6 +76,8 @@
                 <div class="rules-section">
                     <h2>Game Rules</h2>
                     <div class="rules-content">
+                        <p class="game-goal">The goal of Pressure is to capture all of your opponent's tokens.</p>
+                        
                         <h3>Token Types</h3>
                         <!-- Combined white and black tokens in one row -->
                         <div class="token-example">
@@ -107,46 +109,89 @@
                             <div class="token-description">Captured token - permanently inactive, but can still be pushed</div>
                         </div>
                         
-						<h3>Example Push Move</h3>
-						<div class="move-example">
-							<div class="move-label">Before Push:</div>
-							<div class="move-row">
-								<div class="token-container token-with-arrow">
-									<div class="token-mini white"></div>
-									<div class="move-direction-arrow">→</div>
-								</div>
-								<div class="token-container">
-									<div class="token-mini black"></div>
-								</div>
-								<div class="token-container">
-									<div class="token-mini white"></div>
-								</div>
-								<div class="token-container">
-									<div class="token-mini empty"></div>
-								</div>
-							</div>
-							
-							<div class="move-label">After White Pushes Right:</div>
-							<div class="move-row">
-								<div class="token-container">
-									<div class="token-mini empty"></div>
-								</div>
-								<div class="token-container">
-									<div class="token-mini white"></div>
-								</div>
-								<div class="token-container">
-									<div class="token-mini black inactive"></div>
-								</div>
-								<div class="token-container">
-									<div class="token-mini white"></div>
-								</div>
-							</div>
-							<p><small>Note: After push, the black token becomes inactive (red dot) for black's next turn.</small></p>
-						</div>
+                        <h3>Core Rules</h3>
                         
-                        <h3>Token Capture Examples</h3>
+                        <!-- Movement Rule with Example -->
+                        <p><strong>Movement:</strong> On your turn, move one of your tokens to an adjacent space (up, down, left, or right). You cannot move diagonally or move inactive tokens (marked with red).</p>
                         
-                        <!-- Capture by 4 surrounding tokens -->
+                        <!-- NEW: Simple Move Example -->
+                        <div class="move-example">
+                            <div class="move-label">Basic Move (without push):</div>
+                            <div class="move-row">
+                                <div class="token-container token-with-arrow">
+                                    <div class="token-mini white"></div>
+                                    <div class="move-direction-arrow">→</div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini empty"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini black"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="move-label">After White Moves Right:</div>
+                            <div class="move-row">
+                                <div class="token-container">
+                                    <div class="token-mini empty"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini white"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini black"></div>
+                                </div>
+                            </div>
+                            <p><small>A token simply moves to an adjacent empty space.</small></p>
+                        </div>
+                        
+                        <!-- Pushing Rule with Example -->
+                        <p><strong>Pushing:</strong> When moving into an occupied space, you are "pushing" the whole connected line of tokens. Pushing is only valid if there is an empty space at the end of the line. Both your own and opponent tokens can be pushed.</p>
+                        
+                        <div class="move-example">
+                            <div class="move-label">Push Move:</div>
+                            <div class="move-row">
+                                <div class="token-container token-with-arrow">
+                                    <div class="token-mini white"></div>
+                                    <div class="move-direction-arrow">→</div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini black"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini white"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini empty"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="move-label">After White Pushes Right:</div>
+                            <div class="move-row">
+                                <div class="token-container">
+                                    <div class="token-mini empty"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini white"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini black inactive"></div>
+                                </div>
+                                <div class="token-container">
+                                    <div class="token-mini white"></div>
+                                </div>
+                            </div>
+                            <p><small>When pushing, the entire connected line moves one space.</small></p>
+                        </div>
+                        
+                        <!-- Inactivity Rule -->
+                        <p><strong>Inactivity:</strong> Any opponent tokens that you push become inactive (marked with red) for their next turn. Your own pushed tokens remain active. Inactive tokens cannot be moved but can still be pushed.</p>
+                        <p><small>Note: In the push example above, the black token becomes inactive (red dot) for black's next turn.</small></p>
+                        
+                        <!-- Capture Rule with Examples -->
+                        <p><strong>Capture:</strong> When a token is surrounded on all four orthogonal sides (by tokens or board edges), it is immediately captured (turned blue). Captured tokens cannot be moved directly but can be pushed. Once captured, tokens remain captured for the rest of the game.</p>
+                        
+                        <!-- Capture examples -->
                         <div class="capture-example">
                             <div class="capture-label">Capture by 4 surrounding tokens:</div>
                             <div class="capture-grid">
@@ -194,23 +239,13 @@
                                     <div class="token-mini white"></div>
                                 </div>
                                 <div class="token-container"></div>
-								
+                                
                                 <div class="token-container"></div>
                                 <div class="token-container"></div>
                                 <div class="token-container"></div>
-								
                             </div>
                             <p><small>A token in the corner can be captured by just 2 tokens because the board edges count as surrounding.</small></p>
                         </div>
-                        
-                        <h3>Core Rules</h3>
-                        <p><strong>Movement:</strong> On your turn, move one of your tokens to an adjacent space (up, down, left, or right). You cannot move diagonally or move inactive tokens (marked with red).</p>
-                        
-                        <p><strong>Pushing:</strong> When moving into an occupied space, you are "pushing" the whole connected line of tokens. Pushing is only valid if there is an empty space at the end of the line. Both your own and opponent tokens can be pushed.</p>
-                        
-                        <p><strong>Inactivity:</strong> Any opponent tokens that you push become inactive (marked with red) for their next turn. Your own pushed tokens remain active. Inactive tokens cannot be moved but can still be pushed.</p>
-                        
-                        <p><strong>Capture:</strong> When a token is surrounded on all four orthogonal sides (by tokens or board edges), it is immediately captured (turned blue). Captured tokens cannot be moved directly but can be pushed. Once captured, tokens remain captured for the rest of the game.</p>
                         
                         <h3>Victory Conditions</h3>
                         <p>The game ends immediately when either:</p>
