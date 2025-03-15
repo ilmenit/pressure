@@ -20,6 +20,9 @@ class Game {
         this.moveHistory = [];
         this.redoStack = [];
         
+        // AI move processing flag
+        this.isProcessingAIMove = false;
+        
         // Create UI manager after DOM is loaded
         this.ui = null;
     }
@@ -43,6 +46,7 @@ class Game {
         this.whiteAILevel = whiteAILevel;
         this.winner = null;
         this.winReason = '';
+        this.isProcessingAIMove = false;
         
         // Clear move history
         this.moveHistory = [];
@@ -67,7 +71,7 @@ class Game {
         const playerType = this.currentPlayer === 'black' 
             ? this.blackPlayerType 
             : this.whitePlayerType;
-        return playerType === 'human';
+        return playerType === 'human' && !this.isProcessingAIMove;
     }
 
     /**
@@ -120,7 +124,7 @@ class Game {
      * Undo the last move
      */
     undoMove() {
-        if (this.moveHistory.length === 0) return false;
+        if (this.moveHistory.length === 0 || this.isProcessingAIMove) return false;
         
         // Save current state for redo
         const currentState = {
@@ -160,7 +164,7 @@ class Game {
      * Redo a previously undone move
      */
     redoMove() {
-        if (this.redoStack.length === 0) return false;
+        if (this.redoStack.length === 0 || this.isProcessingAIMove) return false;
         
         // Save current state for undo
         this.saveStateForUndo();
@@ -190,7 +194,10 @@ class Game {
      * Execute an AI move
      */
     executeAIMove() {
-        if (!this.isGameActive || this.isHumanTurn()) return;
+        if (!this.isGameActive || this.isHumanTurn() || this.isProcessingAIMove) return;
+        
+        // Set flag to prevent multiple AI moves from being processed simultaneously
+        this.isProcessingAIMove = true;
         
         // Set AI strength based on current player
         const aiLevel = this.currentPlayer === 'black' ? this.blackAILevel : this.whiteAILevel;
@@ -199,15 +206,22 @@ class Game {
         // Get the best move from AI
         const aiMove = this.ai.getBestMove(this.currentPlayer);
         
-        if (aiMove) {
-            // Execute the move
-            this.executePlayerMove(aiMove);
+        // Handle the move result with a timeout to ensure the thinking indicator has time to display
+        setTimeout(() => {
+            if (aiMove) {
+                // Execute the move
+                this.executePlayerMove(aiMove);
+            } else {
+                // No valid moves - game over
+                this.endGame(this.getOppositeColor(this.currentPlayer), 'No valid moves available');
+            }
+            
+            // Clear processing flag
+            this.isProcessingAIMove = false;
+            
+            // Update game status for next player
             this.ui.updateGameStatus();
-        } else {
-            // No valid moves - game over
-            this.endGame(this.getOppositeColor(this.currentPlayer), 'No valid moves available');
-            this.ui.updateGameStatus();
-        }
+        }, 50);
     }
 
     /**

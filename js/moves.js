@@ -119,25 +119,32 @@ class MoveManager {
 
     /**
      * Execute a move
+     * @param {Object} move - The move to execute
+     * @param {string} currentPlayer - The current player color
+     * @param {boolean} skipRendering - Whether to skip rendering (used for AI simulation)
+     * @returns {Array} - Captured tokens during this move
      */
-    executeMove(move, currentPlayer) {
+    executeMove(move, currentPlayer, skipRendering = false) {
         const oppositeColor = currentPlayer === 'black' ? 'white' : 'black';
         
         if (move.type === 'move') {
             // Simple move to empty space
             this.board.moveToken(move.from.row, move.from.col, move.to.row, move.to.col);
+            
+            // Check for surrounded tokens after a simple move
+            this.board.checkAndTransformSurroundedTokens();
         } else if (move.type === 'push') {
             // Execute push
             this.executePush(move, currentPlayer, oppositeColor);
         }
         
-        // Check for tokens that are now surrounded
-        const transformedTokens = this.board.checkAndTransformSurroundedTokens();
+        // Update the board display only if not in simulation mode
+        if (!skipRendering) {
+            this.board.renderBoard();
+        }
         
-        // Update the board display
-        this.board.renderBoard();
-        
-        return transformedTokens;
+        // Return any tokens that were captured during this move
+        return this.board.getLastCapturedTokens();
     }
 
     /**
@@ -178,12 +185,15 @@ class MoveManager {
             if (isOpponentToken && !tokenObj.isCaptured) {
                 pushedOpponentTokens.push({ row: newRow, col: newCol });
             }
+            
+            // Check for surrounded tokens after each individual token movement
+            this.board.checkAndTransformSurroundedTokens();
         }
         
         // Move the pushing token to the destination
         this.board.moveToken(move.from.row, move.from.col, move.to.row, move.to.col);
         
-        // Check for surrounded tokens after all movement
+        // Check for surrounds after the pusher moves too
         this.board.checkAndTransformSurroundedTokens();
         
         // Make all pushed opponent tokens inactive
