@@ -17,6 +17,8 @@
     max-width: 800px;
     width: 100%;
     margin: 0 auto;
+    height: calc(100vh - 150px); /* Account for header and some margin */
+    overflow: hidden; /* Prevent double scrollbars */
 }
 
 .tournament-ladder {
@@ -24,8 +26,9 @@
     flex-direction: column;
     gap: 15px;
     margin: 20px 0;
-    max-height: 70vh;
+    flex: 1;
     overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
     padding: 10px;
     background-color: #1E1E1E;
     border-radius: 8px;
@@ -40,11 +43,14 @@
     border-radius: 8px;
     transition: all 0.3s ease;
     position: relative;
+    min-width: 0; /* Prevent overflow from children */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .ladder-opponent.current {
     background-color: #4A6FA5;
-    transform: scale(1.05);
+    transform: scale(1.02); /* Reduced scale to prevent overflow */
     box-shadow: 0 0 15px rgba(74, 111, 165, 0.7);
 }
 
@@ -73,12 +79,17 @@
 
 .opponent-info {
     flex: 1;
+    min-width: 0; /* Allow text to truncate */
+    overflow: hidden; /* Contain any overflow */
 }
 
 .opponent-name {
     font-weight: bold;
     font-size: 1.2rem;
     margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .opponent-difficulty {
@@ -95,13 +106,69 @@
     padding: 5px 10px;
     border-radius: 4px;
     font-size: 0.9rem;
+    white-space: nowrap;
 }
 
+/* Tournament Progress */
+.tournament-progress {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #222;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.progress-text {
+    margin-bottom: 10px;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.progress-bar {
+    height: 10px;
+    background-color: #444;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #4A6FA5;
+    transition: width 0.5s ease;
+}
+
+.current-opponent-indicator {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #4A6FA5;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        background-color: #4A6FA5;
+    }
+    50% {
+        background-color: #3a5a80;
+    }
+    100% {
+        background-color: #4A6FA5;
+    }
+}
+
+/* Tournament Controls */
 .tournament-controls {
     display: flex;
     flex-direction: column;
     gap: 10px;
     margin: 20px 0;
+    padding: 15px;
+    background-color: #222;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Opponent Display in Game */
@@ -200,6 +267,56 @@
     background-color: #3A5A80;
 }
 
+/* Modal button styling for tournament */
+#tournament-continue-btn {
+    background-color: #4A6FA5;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: block;
+    width: 100%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+#tournament-continue-btn:hover {
+    background-color: #3A5A80;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+#tournament-continue-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Custom modal styling for tournament victories */
+.tournament-modal-title {
+    color: #FFD700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Tournament Victory Feedback */
+.victory-feedback {
+    margin: 15px 0;
+    font-size: 1.1rem;
+    color: #FFD700;
+    text-align: center;
+    animation: victory-pulse 2s infinite;
+}
+
+@keyframes victory-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     #opponent-display {
@@ -219,21 +336,77 @@
         padding: 10px;
         font-size: 0.9rem;
     }
+    
+    .tournament-container {
+        height: calc(100vh - 120px);
+    }
+    
+    .tournament-controls {
+        padding: 10px;
+    }
+    
+    .progress-text {
+        font-size: 0.9rem;
+    }
+    
+    .current-opponent-indicator {
+        font-size: 0.9rem;
+        padding: 8px;
+    }
 }
 
 /* Smaller screens */
 @media (max-width: 500px) {
     .opponent-portrait {
-        width: 60px;
-        height: 60px;
+        width: 50px;
+        height: 50px;
     }
     
     .ladder-opponent {
         padding: 10px;
+        gap: 10px;
     }
     
     .opponent-status {
         font-size: 0.8rem;
         padding: 3px 8px;
+    }
+    
+    .opponent-name {
+        font-size: 1rem;
+    }
+    
+    .opponent-difficulty {
+        font-size: 0.8rem;
+    }
+    
+    .tournament-victory {
+        padding: 15px;
+    }
+    
+    .tournament-trophy {
+        font-size: 40px;
+    }
+    
+    .current-opponent-indicator {
+        margin-bottom: 10px;
+    }
+    
+    /* Fix modal content on small screens */
+    .modal-content {
+        width: 95%;
+        padding: 15px;
+    }
+    
+    /* Adjust buttons for better touch targets */
+    .large-btn {
+        padding: 12px 10px;
+        font-size: 1rem;
+    }
+    
+    /* Ensure tournament container doesn't overflow */
+    .tournament-container {
+        padding: 0 10px;
+        box-sizing: border-box;
     }
 }

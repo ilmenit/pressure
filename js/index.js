@@ -53,6 +53,16 @@ function setupMainMenuListeners() {
         console.error("Missing element: tournament-mode-btn");
     }
     
+    // Tutorial mode button
+    const tutorialModeBtn = document.getElementById('tutorial-mode-btn');
+    if (tutorialModeBtn) {
+        tutorialModeBtn.addEventListener('click', () => {
+            alert("Tutorial mode will be available in a future update.");
+        });
+    } else {
+        console.error("Missing element: tutorial-mode-btn");
+    }
+    
     // Standard mode setup controls
     const standardStartBtn = document.getElementById('standard-start-game-btn');
     if (standardStartBtn) {

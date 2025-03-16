@@ -69,20 +69,40 @@ function ensureCharactersDirectory() {
  * Create fallback image for missing character images
  */
 function createFallbackImage(imageName, fallbackImage) {
-    // If unable to load actual image, create fallback data
+    // If unable to load actual image, create a personalized fallback based on character name
     console.warn(`Character image ${imageName} not found, using fallback`);
+    
+    // Extract character name from filename to create a better fallback
+    let characterName = 'Character';
+    if (imageName.includes('_')) {
+        // Extract parts from filenames like "rabbit_pirate.webp"
+        const parts = imageName.split('.')[0].split('_');
+        if (parts.length >= 2) {
+            characterName = parts.map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+        }
+    }
+    
+    // Create custom SVG with character's name
+    const customFallback = `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+        <rect width="100" height="100" fill="#4A6FA5"/>
+        <circle cx="50" cy="40" r="20" fill="#333"/>
+        <rect x="30" y="65" width="40" height="25" rx="5" fill="#333"/>
+        <text x="50" y="92" font-family="Arial" font-size="12" fill="white" text-anchor="middle">${characterName}</text>
+    </svg>`)}`;
     
     // Store the fallback in localStorage to use later
     try {
         if (typeof localStorage !== 'undefined') {
-            localStorage.setItem(`char_img_${imageName}`, fallbackImage);
+            localStorage.setItem(`char_img_${imageName}`, customFallback);
         }
     } catch (e) {
         console.error('Could not save fallback image to localStorage', e);
     }
     
     // Apply to any current images
-    applyFallbackToCurrentImages(imageName, fallbackImage);
+    applyFallbackToCurrentImages(imageName, customFallback);
+    
+    return customFallback;
 }
 
 /**

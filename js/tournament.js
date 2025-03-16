@@ -332,13 +332,18 @@ class TournamentManager {
         const tournamentCompleteBackBtn = document.getElementById('tournament-complete-back-btn');
         if (tournamentCompleteBackBtn) {
             tournamentCompleteBackBtn.addEventListener('click', () => {
-                const tournamentCompleteScreen = document.getElementById('tournament-complete-screen');
-                if (tournamentCompleteScreen) {
-                    tournamentCompleteScreen.classList.add('hidden');
+                const completeScreen = document.getElementById('tournament-complete-screen');
+                if (completeScreen) {
+                    completeScreen.classList.add('hidden');
                 }
                 const mainMenu = document.getElementById('main-menu');
                 if (mainMenu) {
                     mainMenu.classList.remove('hidden');
+                    // Focus on the main menu for keyboard accessibility
+                    const firstButton = mainMenu.querySelector('button');
+                    if (firstButton) {
+                        firstButton.focus();
+                    }
                 }
             });
         }
@@ -409,7 +414,7 @@ class TournamentManager {
     }
     
     /**
-     * Display character commentary
+     * Display character commentary using a bag of quotes system
      */
     displayCommentary(type) {
         const opponent = this.getCurrentOpponent();
@@ -417,8 +422,29 @@ class TournamentManager {
             return;
         }
         
-        const quotes = opponent.quotes[type];
-        const quote = quotes[Math.floor(Math.random() * quotes.length)];
+        // Initialize quote bags if they don't exist
+        this.quoteBags = this.quoteBags || {};
+        if (!this.quoteBags[opponent.id]) {
+            this.quoteBags[opponent.id] = {};
+        }
+        
+        // Get or create the quote bag for this type
+        if (!this.quoteBags[opponent.id][type] || this.quoteBags[opponent.id][type].length === 0) {
+            // If bag is empty or doesn't exist, refill it with all quotes (shuffled)
+            this.quoteBags[opponent.id][type] = [...opponent.quotes[type]];
+            this.shuffleArray(this.quoteBags[opponent.id][type]);
+        }
+        
+        // For non-critical events, apply probability to decide whether to show dialog
+        if (type === 'capture' || type === 'opponentCapture') {
+            // Only show dialog 30% of the time for captures
+            if (Math.random() > 0.3) {
+                return;
+            }
+        }
+        
+        // Get the next quote from the bag
+        const quote = this.quoteBags[opponent.id][type].pop();
         
         const commentaryBox = document.getElementById('commentary-box');
         if (commentaryBox) {
@@ -433,10 +459,44 @@ class TournamentManager {
     }
     
     /**
+     * Shuffle an array using Fisher-Yates algorithm
+     */
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+    
+    /**
      * Handle token capture event
      */
     handleTokenCapture(tokenColor) {
+        // Initialize capture tracking
+        this.captureCounter = this.captureCounter || { lastCaptureTime: 0, consecutiveCaptures: 0 };
+        
+        // Check if we're in tournament mode
         if (this.game.isTournamentMode) {
+            const now = Date.now();
+            
+            // Don't show commentary for consecutive captures within 2 seconds
+            // This prevents dialog spam when multiple captures happen at once
+            if (now - this.captureCounter.lastCaptureTime < 2000) {
+                this.captureCounter.consecutiveCaptures++;
+                
+                // Only show dialog for first 2 consecutive captures
+                if (this.captureCounter.consecutiveCaptures > 2) {
+                    return;
+                }
+            } else {
+                // Reset consecutive captures counter if enough time has passed
+                this.captureCounter.consecutiveCaptures = 1;
+            }
+            
+            // Update last capture time
+            this.captureCounter.lastCaptureTime = now;
+            
             // If player's token was captured
             if (tokenColor === 'white') {
                 this.displayCommentary('opponentCapture');
@@ -457,25 +517,91 @@ class TournamentManager {
         // Show appropriate commentary
         this.displayCommentary(isPlayerWin ? 'lose' : 'win');
         
-        // If player won, enable progression after a delay
+        // If player won, create a visible tournament victory message and progress button
         if (isPlayerWin) {
-            setTimeout(() => {
-                const hasNextOpponent = this.advanceToNextOpponent();
+            // Override win modal with tournament advancement UI
+            const winModal = document.getElementById('win-modal');
+            const winModalTitle = document.getElementById('win-modal-title');
+            const winModalMessage = document.getElementById('win-modal-message');
+            const winModalButtons = document.querySelector('#win-modal .modal-buttons');
+            
+            if (winModal && winModalTitle && winModalMessage && winModalButtons) {
+                // Change modal content to show tournament victory
+                winModalTitle.textContent = 'Tournament Victory!';
+                winModalTitle.className = 'tournament-modal-title';
                 
-                if (!hasNextOpponent) {
-                    // Tournament complete
-                    this.showTournamentComplete();
-                } else {
-                    // Return to tournament ladder
-                    this.showTournamentScreen();
+                const currentOpponent = this.getCurrentOpponent();
+                const defeatedCount = this.opponents.filter(o => o.defeated).length;
+                const totalOpponents = this.opponents.length;
+                const isLastOpponent = this.currentOpponentIndex === totalOpponents - 1;
+                
+                winModalMessage.innerHTML = `
+                    <div>You've defeated ${currentOpponent.name}!</div>
+                    <div class="victory-feedback">
+                        ${isLastOpponent 
+                            ? 'Final boss conquered!' 
+                            : `Opponent ${defeatedCount + 1} of ${totalOpponents} defeated!`}
+                    </div>
+                `;
+                
+                // Replace buttons with continue button
+                winModalButtons.innerHTML = `
+                    <button id="tournament-continue-btn" class="large-btn">
+                        ${isLastOpponent 
+                            ? 'Claim Your Championship Trophy' 
+                            : 'Continue to Next Opponent'}
+                    </button>
+                `;
+                
+                // Add event listener to continue button
+                const continueBtn = document.getElementById('tournament-continue-btn');
+                if (continueBtn) {
+                    continueBtn.addEventListener('click', () => {
+                        // Hide win modal
+                        winModal.classList.add('hidden');
+                        
+                        // Advance to next opponent
+                        const hasNextOpponent = this.advanceToNextOpponent();
+                        
+                        if (!hasNextOpponent) {
+                            // Tournament complete
+                            this.showTournamentComplete();
+                        } else {
+                            // Return to tournament ladder
+                            this.showTournamentScreen();
+                        }
+                    });
+                    
+                    // Set focus to the continue button for keyboard accessibility
+                    setTimeout(() => {
+                        continueBtn.focus();
+                    }, 100);
                 }
-            }, 3000);
+            } else {
+                // Fallback if modal elements not found
+                setTimeout(() => {
+                    const hasNextOpponent = this.advanceToNextOpponent();
+                    
+                    if (!hasNextOpponent) {
+                        // Tournament complete
+                        this.showTournamentComplete();
+                    } else {
+                        // Return to tournament ladder
+                        this.showTournamentScreen();
+                    }
+                }, 3000);
+            }
         } else {
             // Player lost - show retry button
             setTimeout(() => {
                 const retryBtn = document.getElementById('tournament-retry-btn');
                 if (retryBtn) {
                     retryBtn.classList.remove('hidden');
+                    
+                    // Set focus to retry button for keyboard accessibility
+                    setTimeout(() => {
+                        retryBtn.focus();
+                    }, 100);
                 }
             }, 2000);
         }
@@ -494,8 +620,93 @@ class TournamentManager {
         // Show completion screen
         const completeScreen = document.getElementById('tournament-complete-screen');
         if (completeScreen) {
+            // Update completion message with more personalization
+            const completionElement = completeScreen.querySelector('.tournament-victory');
+            if (completionElement) {
+                completionElement.innerHTML = `
+                    <div class="tournament-trophy">🏆</div>
+                    <h2>Congratulations!</h2>
+                    <p>You have defeated all opponents and become the Pressure Champion!</p>
+                    <p class="final-stats">You've mastered the game by defeating ${this.opponents.length} unique opponents!</p>
+                    <button id="tournament-complete-back-btn" class="large-btn">Return to Main Menu</button>
+                `;
+                
+                // Re-attach event listener to the new button
+                const backBtn = document.getElementById('tournament-complete-back-btn');
+                if (backBtn) {
+                    backBtn.addEventListener('click', () => {
+                        completeScreen.classList.add('hidden');
+                        const mainMenu = document.getElementById('main-menu');
+                        if (mainMenu) {
+                            mainMenu.classList.remove('hidden');
+                            // Focus on the main menu for keyboard accessibility
+                            const firstButton = mainMenu.querySelector('button');
+                            if (firstButton) {
+                                firstButton.focus();
+                            }
+                        }
+                    });
+                }
+            }
+            
             completeScreen.classList.remove('hidden');
+            
+            // Play celebration animation/sound
+            this.celebrateTournamentVictory();
         }
+    }
+    
+    /**
+     * Celebrate tournament victory with special effects
+     */
+    celebrateTournamentVictory() {
+        // Create a more elaborate victory animation
+        const completeScreen = document.getElementById('tournament-complete-screen');
+        if (!completeScreen) return;
+        
+        // Add celebration background
+        const celebration = document.createElement('div');
+        celebration.className = 'tournament-celebration';
+        completeScreen.appendChild(celebration);
+        
+        // Create confetti
+        for (let i = 0; i < 100; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'victory-confetti';
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.top = `-${Math.random() * 20 + 10}px`;
+                confetti.style.backgroundColor = this.getRandomCelebrateColor();
+                confetti.style.width = `${Math.random() * 10 + 5}px`;
+                confetti.style.height = `${Math.random() * 10 + 5}px`;
+                confetti.style.animationDelay = `${Math.random() * 3}s`;
+                confetti.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                celebration.appendChild(confetti);
+                
+                // Remove confetti after animation completes
+                setTimeout(() => {
+                    if (confetti.parentNode) {
+                        confetti.parentNode.removeChild(confetti);
+                    }
+                }, 5000);
+            }, i * 50); // Staggered creation for better effect
+        }
+    }
+    
+    /**
+     * Get random color for celebration confetti
+     */
+    getRandomCelebrateColor() {
+        const colors = [
+            '#FFD700', // Gold
+            '#FF5733', // Red-Orange
+            '#33FF57', // Green
+            '#5733FF', // Purple
+            '#FF33A8', // Pink
+            '#33FFF3', // Cyan
+            '#F3FF33'  // Yellow
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
     }
     
     /**
@@ -512,6 +723,14 @@ class TournamentManager {
         const tournamentScreen = document.getElementById('tournament-screen');
         if (tournamentScreen) {
             tournamentScreen.classList.remove('hidden');
+            
+            // Set focus to the challenge button for keyboard accessibility
+            const startMatchBtn = document.getElementById('start-match-btn');
+            if (startMatchBtn) {
+                setTimeout(() => {
+                    startMatchBtn.focus();
+                }, 100);
+            }
         }
         
         // Update ladder display
@@ -531,6 +750,14 @@ class TournamentManager {
         
         if (mainMenu) {
             mainMenu.classList.remove('hidden');
+            
+            // Set focus to first button in main menu for keyboard accessibility
+            const firstButton = mainMenu.querySelector('button');
+            if (firstButton) {
+                setTimeout(() => {
+                    firstButton.focus();
+                }, 100);
+            }
         }
     }
     
@@ -546,6 +773,38 @@ class TournamentManager {
         
         ladderElement.innerHTML = '';
         
+        // Add progress indicator at the top
+        const progressElement = document.createElement('div');
+        progressElement.className = 'tournament-progress';
+        
+        // Calculate progress 
+        const defeatedCount = this.opponents.filter(o => o.defeated).length;
+        const totalOpponents = this.opponents.length;
+        const currentOpponentNumber = this.currentOpponentIndex + 1;
+        
+        progressElement.innerHTML = `
+            <div class="progress-text">
+                <span>Progress: ${defeatedCount} / ${totalOpponents} opponents defeated</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${(defeatedCount / totalOpponents) * 100}%"></div>
+            </div>
+        `;
+        
+        ladderElement.appendChild(progressElement);
+        
+        // Add current opponent indicator
+        if (!this.tournamentCompleted) {
+            const currentOpponent = this.getCurrentOpponent();
+            if (currentOpponent) {
+                const currentElement = document.createElement('div');
+                currentElement.className = 'current-opponent-indicator';
+                currentElement.innerHTML = `Current Challenge: <strong>${currentOpponent.name}</strong> (Opponent ${currentOpponentNumber} of ${totalOpponents})`;
+                ladderElement.appendChild(currentElement);
+            }
+        }
+        
+        // Add all opponents to ladder
         this.opponents.forEach((opponent, index) => {
             const opponentElement = document.createElement('div');
             opponentElement.className = 'ladder-opponent';

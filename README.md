@@ -4,11 +4,14 @@ A web-based implementation of "Pressure", a strategic board game focusing on tok
 
 ## Game Modes
 
-### Standard Mode
-Play a standard game of Pressure against another human player or against the AI with configurable difficulty levels.
+### One on One Game
+Play a standard game of Pressure against another human player or against the AI with configurable difficulty levels (1-9).
 
 ### Tournament Mode
 Challenge a series of 11 unique AI characters with distinct personalities and increasing difficulty levels. Defeat them all to become the Pressure Champion!
+
+### Tutorial (Coming Soon)
+An interactive tutorial to teach new players the game basics (planned for a future update).
 
 ## Game Rules
 
@@ -46,9 +49,14 @@ The game ends immediately when either:
 1. A player captures all enemy tokens
 2. A player has no legal moves on their turn
 
-## Tournament Mode Characters
+## Tournament Mode Features
 
-Tournament mode features 11 unique characters with distinct personalities:
+- **Progressive Difficulty**: First 5 opponents at level 1, next 5 at level 2, final boss at level 3
+- **Character Personalities**: Each opponent has unique commentary based on game events
+- **Progress Tracking**: Tournament progress is saved between sessions
+- **Victory Celebration**: Special effects when completing the tournament
+
+## Tournament Mode Characters
 
 1. **Captain Thumper** - A pirate rabbit who loves treasure
 2. **Sheriff Chomps** - A dinosaur law enforcer
@@ -90,14 +98,6 @@ Tournament mode features 11 unique characters with distinct personalities:
 
 4. Open `index.html` in a web browser to play.
 
-## Browser Compatibility
-
-Tested and working in:
-- Chrome (recommended)
-- Firefox
-- Safari
-- Edge
-
 ## File Structure
 
 ```
@@ -131,6 +131,21 @@ pressure-game/
 - Character dialogue and personality
 - Progress tracking between sessions
 - Responsive design for different screen sizes
+
+## Accessibility Features
+
+- Keyboard focus management
+- Proper contrast for text and UI elements
+- Responsive design for different device sizes
+- Fallback visuals for missing assets
+
+## Browser Compatibility
+
+Tested and working in:
+- Chrome
+- Firefox
+- Safari
+- Edge
 
 ## Credits
 
