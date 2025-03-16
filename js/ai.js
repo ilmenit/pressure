@@ -1,5 +1,5 @@
 /**
- * AI Player with optimized move/undo system and thinking indicator
+ * AI Player with optimized move/undo system
  */
 class AIPlayer {
     constructor(board, moveManager) {
@@ -10,7 +10,6 @@ class AIPlayer {
         this.nodesEvaluated = 0;
         this.isThinking = false;
         this.thinkingStartTime = 0;
-        this.MIN_THINKING_DISPLAY_TIME = 1500; // Increased minimum time to show thinking indicator (ms)
     }
 
     /**
@@ -21,13 +20,23 @@ class AIPlayer {
     }
 
     /**
-     * Get the best move for the current player
+     * Get the best move for the current player with progress callback
+     * @param {string} color - The player color ('black' or 'white')
+     * @param {Function} progressCallback - Callback for AI progress updates
+     * @returns {Object} The selected move
      */
-    getBestMove(color) {
-        // Show thinking indicator immediately
+    getBestMove(color, progressCallback) {
+        // Start thinking timer
         this.isThinking = true;
         this.thinkingStartTime = performance.now();
-        this.showThinkingIndicator(true);
+        
+        // Initial progress notification
+        if (progressCallback) {
+            progressCallback({
+                type: 'start',
+                message: 'AI is thinking...'
+            });
+        }
         
         // Get all possible moves
         const possibleMoves = this.moveManager.generatePossibleMoves(color);
@@ -36,17 +45,31 @@ class AIPlayer {
         this.nodesEvaluated = 0;
         console.time('AI thinking time');
         
+        // No moves available
         if (possibleMoves.length === 0) {
-            this.hideThinkingAfterDelay(this.MIN_THINKING_DISPLAY_TIME);
+            if (progressCallback) {
+                progressCallback({
+                    type: 'end', 
+                    result: 'no_moves',
+                    message: 'AI found no possible moves'
+                });
+            }
             console.timeEnd('AI thinking time');
+            this.isThinking = false;
             return null;
         }
         
         // If only one move is available, return it immediately
         if (possibleMoves.length === 1) {
-            this.updateThinkingIndicator("Move selected");
-            this.hideThinkingAfterDelay(this.MIN_THINKING_DISPLAY_TIME);
+            if (progressCallback) {
+                progressCallback({
+                    type: 'end',
+                    result: 'single_move',
+                    message: 'AI found only one possible move'
+                });
+            }
             console.timeEnd('AI thinking time');
+            this.isThinking = false;
             return possibleMoves[0];
         }
         
@@ -56,14 +79,19 @@ class AIPlayer {
         
         // Adjust search depth based on available moves to prevent very slow turns
         let searchDepth = this.difficulty;
-        if (movesToConsider.length > 12 && searchDepth > 4) {
-            searchDepth = 4; // Limit depth for many available moves
-        } else if (movesToConsider.length > 8 && searchDepth > 6) {
+        if (movesToConsider.length > 10 && searchDepth > 6) {
             searchDepth = 6; // Moderate limitation
+        } else if (movesToConsider.length > 14 && searchDepth > 4) {
+            searchDepth = 4; // Limit depth for many available moves
         }
-        
-        // Update thinking indicator with depth info
-        this.updateThinkingIndicator(`Analyzing at depth ${searchDepth}...`);
+        // Update progress with depth info
+        if (progressCallback) {
+            progressCallback({
+                type: 'depth',
+                depth: searchDepth,
+                message: `AI analyzing at depth ${searchDepth}...`
+            });
+        }
         
         // Evaluate all moves with proper depth search
         const evaluatedMoves = [];
@@ -91,11 +119,17 @@ class AIPlayer {
             // Add move to evaluated list
             evaluatedMoves.push({ move, score });
             
-            // Update progress indicator periodically (not every move to avoid too many UI updates)
+            // Update progress indicator periodically (not every move to avoid too many updates)
             completedMoves++;
             if (completedMoves % Math.max(1, Math.floor(movesToConsider.length / 10)) === 0) {
                 const progress = Math.floor((completedMoves / movesToConsider.length) * 100);
-                this.updateThinkingIndicator(`Analyzing moves: ${progress}%`);
+                if (progressCallback) {
+                    progressCallback({
+                        type: 'progress',
+                        percent: progress,
+                        message: `AI analyzing moves: ${progress}%`
+                    });
+                }
             }
         }
         
@@ -106,127 +140,61 @@ class AIPlayer {
         console.log(`AI evaluated ${this.nodesEvaluated} positions at depth ${searchDepth}`);
         console.timeEnd('AI thinking time');
         
-        // Update the thinking indicator to show that a move has been selected
-        this.updateThinkingIndicator("Move selected");
+        // Final notification that a move has been selected
+        if (progressCallback) {
+            progressCallback({
+                type: 'end',
+                result: 'move_selected',
+                message: 'AI move selected'
+            });
+        }
         
-        // Hide thinking indicator with minimum display time
-        this.hideThinkingAfterDelay(this.MIN_THINKING_DISPLAY_TIME);
+        // Improved move selection logic that adds controlled randomness at all difficulty levels
+        let selectedMove;
         
-        // For lower difficulties, introduce randomness
-        if (this.difficulty <= 3 && evaluatedMoves.length > 1) {
-            const topCount = Math.min(
-                Math.max(1, Math.ceil(evaluatedMoves.length / 3)),
-                evaluatedMoves.length
+        if (evaluatedMoves.length > 1) {
+            // Get the best score
+            const bestScore = evaluatedMoves[0].score;
+            
+            // Define a threshold for "equally good" moves based on difficulty
+            // Higher difficulty = smaller threshold (more selective)
+            const equalityThreshold = 0.02 * (10 - this.difficulty) / 9;
+            
+            // Find all moves that are within the threshold of the best score
+            const topMoves = evaluatedMoves.filter(move => 
+                (bestScore - move.score) <= equalityThreshold
             );
             
-            // Choose randomly from top third of moves
-            const randomIndex = Math.floor(Math.random() * topCount);
-            return evaluatedMoves[randomIndex].move;
-        }
-        
-        // Return the best move for higher difficulties
-        return evaluatedMoves[0].move;
-    }
-    
-    /**
-     * Hide the thinking indicator after a minimum delay
-     * @param {number} minDelay - Minimum delay in milliseconds
-     */
-    hideThinkingAfterDelay(minDelay) {
-        const elapsedTime = performance.now() - this.thinkingStartTime;
-        const remainingTime = Math.max(0, minDelay - elapsedTime);
-        
-        setTimeout(() => {
-            this.isThinking = false;
-            this.showThinkingIndicator(false);
-        }, remainingTime);
-    }
-    
-    /**
-     * Show or hide the AI thinking indicator
-     */
-    showThinkingIndicator(show) {
-        // Create indicator if it doesn't exist
-        if (!document.getElementById('ai-thinking-indicator')) {
-            const indicator = document.createElement('div');
-            indicator.id = 'ai-thinking-indicator';
-            indicator.className = 'ai-thinking-indicator';
-            indicator.textContent = 'AI is thinking...';
-            
-            // Create and add the pulsing dot
-            const pulsingDot = document.createElement('span');
-            pulsingDot.className = 'pulsing-dot';
-            indicator.appendChild(pulsingDot);
-            
-            // Ensure the animation styles are in place
-            if (!document.getElementById('ai-thinking-styles')) {
-                const style = document.createElement('style');
-                style.id = 'ai-thinking-styles';
-                style.textContent = `
-                    .ai-thinking-indicator {
-                        position: fixed;
-                        top: 10px;
-                        left: 50%;
-                        transform: translateX(-50%);
-                        padding: 10px 20px;
-                        background-color: rgba(0, 0, 0, 0.8);
-                        color: white;
-                        border-radius: 5px;
-                        z-index: 1000;
-                        font-weight: bold;
-                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-                        transition: opacity 0.2s;
-                    }
-                    .pulsing-dot {
-                        display: inline-block;
-                        width: 8px;
-                        height: 8px;
-                        background-color: #4A6FA5;
-                        border-radius: 50%;
-                        margin-left: 8px;
-                        animation: pulse 1.5s infinite;
-                    }
-                    @keyframes pulse {
-                        0% { opacity: 0.4; transform: scale(1); }
-                        50% { opacity: 1; transform: scale(1.3); }
-                        100% { opacity: 0.4; transform: scale(1); }
-                    }
-                `;
-                document.head.appendChild(style);
+            if (this.difficulty <= 3) {
+                // For lower difficulties, use the original behavior (top third of moves)
+                const topCount = Math.min(
+                    Math.max(1, Math.ceil(evaluatedMoves.length / 3)),
+                    evaluatedMoves.length
+                );
+                
+                const randomIndex = Math.floor(Math.random() * topCount);
+                selectedMove = evaluatedMoves[randomIndex].move;
+            } else if (topMoves.length > 1) {
+                // For higher difficulties with multiple equally good moves,
+                // randomly choose among the top moves
+                const randomIndex = Math.floor(Math.random() * topMoves.length);
+                selectedMove = topMoves[randomIndex].move;
+                
+                // Log for debugging
+                if (topMoves.length > 1) {
+                    console.log(`AI selected from ${topMoves.length} equally good moves (threshold: ${equalityThreshold.toFixed(4)})`);
+                }
+            } else {
+                // No equally good moves, just use the best one
+                selectedMove = evaluatedMoves[0].move;
             }
-            
-            document.body.appendChild(indicator);
+        } else {
+            // Only one move after evaluation
+            selectedMove = evaluatedMoves[0].move;
         }
         
-        const indicator = document.getElementById('ai-thinking-indicator');
-        indicator.style.display = show ? 'block' : 'none';
-        
-        // Ensure the indicator is visible by forcing a reflow
-        if (show) {
-            indicator.style.opacity = '0';
-            setTimeout(() => {
-                indicator.style.opacity = '1';
-            }, 10);
-        }
-    }
-    
-    /**
-     * Update the text in the thinking indicator
-     */
-    updateThinkingIndicator(text) {
-        const indicator = document.getElementById('ai-thinking-indicator');
-        if (indicator) {
-            // Get the pulsing dot (last element)
-            const pulsingDot = indicator.querySelector('.pulsing-dot');
-            
-            // Update text content
-            indicator.textContent = text;
-            
-            // Add the dot back if it exists
-            if (pulsingDot) {
-                indicator.appendChild(pulsingDot);
-            }
-        }
+        this.isThinking = false;
+        return selectedMove;
     }
     
     /**

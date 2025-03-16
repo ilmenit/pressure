@@ -47,6 +47,11 @@ class Board {
         // Clear the grid
         this.grid = Array(this.size).fill().map(() => Array(this.size).fill(null));
         
+        // Clear last move data
+        this.lastMoveFrom = null;
+        this.lastMoveTo = null;
+        this.lastCapturedTokens = [];
+        
         // Initial positions for black tokens (a3, a4, b3, b5, c4, c5)
         const blackPositions = [
             {row: 2, col: 0}, // a3

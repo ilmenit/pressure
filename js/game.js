@@ -191,7 +191,7 @@ class Game {
     }
 
     /**
-     * Execute an AI move
+     * Execute an AI move with proper coordination between AI and UI
      */
     executeAIMove() {
         if (!this.isGameActive || this.isHumanTurn() || this.isProcessingAIMove) return;
@@ -203,10 +203,26 @@ class Game {
         const aiLevel = this.currentPlayer === 'black' ? this.blackAILevel : this.whiteAILevel;
         this.ai.setStrength(aiLevel);
         
-        // Get the best move from AI
-        const aiMove = this.ai.getBestMove(this.currentPlayer);
+        // Create a timer to ensure AI has a minimum thinking time for better UX
+        // Even if calculation is instant, display thinking for at least 500ms
+        const startTime = performance.now();
+        const MIN_THINKING_TIME = 500; // ms
         
-        // Handle the move result with a timeout to ensure the thinking indicator has time to display
+        // Define progress callback for AI to report status to UI
+        const progressCallback = (progress) => {
+            if (this.ui) {
+                this.ui.handleAIProgress(progress);
+            }
+        };
+        
+        // Get best move from AI with progress updates
+        const aiMove = this.ai.getBestMove(this.currentPlayer, progressCallback);
+        
+        // Calculate elapsed time and enforce minimum thinking time for UX
+        const elapsedTime = performance.now() - startTime;
+        const remainingTime = Math.max(0, MIN_THINKING_TIME - elapsedTime);
+        
+        // Execute move after minimum thinking time has elapsed
         setTimeout(() => {
             if (aiMove) {
                 // Execute the move
@@ -219,9 +235,11 @@ class Game {
             // Clear processing flag
             this.isProcessingAIMove = false;
             
-            // Update game status for next player
-            this.ui.updateGameStatus();
-        }, 300); // Increased delay to ensure thinking indicator has time to show "Move selected" message
+            // Update game state in UI
+            if (this.ui) {
+                this.ui.updateGameState();
+            }
+        }, remainingTime);
     }
 
     /**

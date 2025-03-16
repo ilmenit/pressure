@@ -5,6 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pressure - Strategic Board Game</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Add additional styles for status area -->
+    <style>
+        /* Game Status Area */
+        .game-status {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-height: 24px;
+            background-color: #1E1E1E;
+            border: 1px solid #333;
+        }
+
+        #status-text {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        /* Status state classes */
+        .status-normal {
+            color: #ffffff;
+        }
+
+        .status-thinking {
+            color: #4A6FA5;
+        }
+
+        .status-error {
+            color: #E74C3C;
+        }
+
+        /* Pulsing dot for thinking animation */
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #4A6FA5;
+            border-radius: 50%;
+            margin-left: 8px;
+            animation: status-pulse 1.5s infinite;
+        }
+
+        @keyframes status-pulse {
+            0% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.3); }
+            100% { opacity: 0.4; transform: scale(1); }
+        }
+
+        /* Hide the old popup indicator */
+        .ai-thinking-indicator {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Menu Screen -->
@@ -267,6 +324,11 @@
             <div class="board">
                 <!-- Board grid will be created by JavaScript -->
             </div>
+        </div>
+        
+        <!-- Game status area - IMPORTANT for displaying AI status -->
+        <div id="game-status" class="game-status status-normal">
+            <span id="status-text">White turn. Select piece to move.</span>
         </div>
         
         <div class="game-controls">

@@ -145,6 +145,9 @@ class UIManager {
         modalTitle.textContent = `${winnerName} Wins!`;
         modalMessage.textContent = reason;
         
+        // Also update the game status
+        this.updateStatus(`${winnerName} player won. ${reason}`, "error");
+        
         modal.classList.remove('hidden');
     }
 
@@ -152,6 +155,9 @@ class UIManager {
      * Start a new game
      */
     startGame() {
+        // Clear any existing selection before starting a new game
+        this.clearSelection();
+        
         // Get player types
         const blackPlayerType = document.querySelector('.player-type-btn[data-player="black"].active').dataset.type;
         const whitePlayerType = document.querySelector('.player-type-btn[data-player="white"].active').dataset.type;
@@ -180,6 +186,16 @@ class UIManager {
         
         // Update undo/redo buttons
         this.updateUndoRedoButtons();
+        
+        // Set initial game status based on whether the starting player is AI
+        if ((this.game.currentPlayer === 'white' && this.game.whitePlayerType === 'ai') ||
+            (this.game.currentPlayer === 'black' && this.game.blackPlayerType === 'ai')) {
+            const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
+            this.updateStatus(`${currentPlayer} turn. AI is thinking...`, "thinking");
+        } else {
+            const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
+            this.updateStatus(`${currentPlayer} turn. Select piece to move.`);
+        }
     }
 
     /**
@@ -263,6 +279,10 @@ class UIManager {
         // Highlight the selected token and possible destinations
         const possibleDestinations = this.possibleMoves.map(move => move.to);
         this.board.highlightCells([{ row, col }, ...possibleDestinations]);
+        
+        // Update status to show piece is selected
+        const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
+        this.updateStatus(`${currentPlayer} turn. Token selected. Choose destination.`);
     }
 
     /**
@@ -272,6 +292,10 @@ class UIManager {
         this.selectedTokenPos = null;
         this.possibleMoves = [];
         this.board.clearHighlights();
+        
+        // Reset status message
+        const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
+        this.updateStatus(`${currentPlayer} turn. Select piece to move.`);
     }
 
     /**
@@ -289,25 +313,89 @@ class UIManager {
     executeMove(move) {
         this.game.executePlayerMove(move);
         this.clearSelection();
-        this.updateGameStatus();
+        this.updateGameState();
     }
 
     /**
-     * Update the game status and check for AI moves
+     * Handle AI progress updates
+     * @param {Object} progress - Progress information from AI
      */
-    updateGameStatus() {
+    handleAIProgress(progress) {
+        switch(progress.type) {
+            case 'start':
+                this.updateStatus(progress.message, "thinking");
+                break;
+                
+            case 'depth':
+            case 'progress':
+                this.updateStatus(progress.message, "thinking");
+                break;
+                
+            case 'end':
+                this.updateStatus(progress.message, "thinking");
+                break;
+                
+            default:
+                console.warn("Unknown AI progress type:", progress.type);
+        }
+    }
+
+    /**
+     * Update the game state display based on current game state
+     */
+    updateGameState() {
         // If the game is over, show result
         if (!this.game.isGameActive && this.game.winner) {
             this.showWinModal(this.game.winner, this.game.winReason);
             return;
         }
         
-        // If AI's turn, trigger AI move
-        if (this.game.isGameActive && !this.game.isHumanTurn()) {
+        // Otherwise show current player's turn
+        const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
+        
+        if (this.game.isHumanTurn()) {
+            this.updateStatus(`${currentPlayer} turn. Select piece to move.`);
+        } else {
+            // AI's turn - set initial message, AI component will update it
+            this.updateStatus(`${currentPlayer} turn. AI is thinking...`, "thinking");
+            
             // Use setTimeout to ensure UI updates before AI processing
             setTimeout(() => {
                 this.game.executeAIMove();
             }, 100);
+        }
+    }
+    
+    /**
+     * Centralized method to update the game status text
+     * @param {string} text - The status message
+     * @param {string} state - The state type (normal, thinking, error)
+     */
+    updateStatus(text, state = "normal") {
+        const statusText = document.getElementById('status-text');
+        if (!statusText) return;
+        
+        // Remove any existing status dot
+        const existingDot = statusText.querySelector('.status-dot');
+        if (existingDot) {
+            existingDot.remove();
+        }
+        
+        // Set the text
+        statusText.textContent = text;
+        
+        // Add pulsing dot for thinking state
+        if (state === "thinking") {
+            const dot = document.createElement('span');
+            dot.className = 'status-dot';
+            statusText.appendChild(dot);
+        }
+        
+        // Set the appropriate class
+        const statusElement = document.getElementById('game-status');
+        if (statusElement) {
+            statusElement.className = 'game-status';
+            statusElement.classList.add(`status-${state}`);
         }
     }
 
@@ -332,6 +420,9 @@ class UIManager {
             // Make sure the board is re-rendered with the updated last move indicators
             this.board.renderBoard();
             
+            // Update game status
+            this.updateGameState();
+            
             // If we're now on an AI's turn and the game is active, 
             // we need to undo one more time to get to a human turn
             if (this.game.isGameActive && !this.game.isHumanTurn()) {
@@ -349,6 +440,9 @@ class UIManager {
             
             // Make sure the board is re-rendered with the updated last move indicators
             this.board.renderBoard();
+            
+            // Update game status
+            this.updateGameState();
             
             // If we're now on an AI's turn and the game is active, 
             // trigger the AI move or redo the next move
