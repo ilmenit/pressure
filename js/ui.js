@@ -6,6 +6,7 @@ class UIManager {
         this.game = game;
         this.board = game.board;
         this.moveManager = game.moveManager;
+        this.gameState = game.gameState;
         this.selectedTokenPos = null;
         this.possibleMoves = [];
         
@@ -406,8 +407,13 @@ class UIManager {
         const undoBtn = document.getElementById('undo-btn');
         const redoBtn = document.getElementById('redo-btn');
         
-        undoBtn.disabled = this.game.moveHistory.length === 0;
-        redoBtn.disabled = this.game.redoStack.length === 0;
+        if (undoBtn) {
+            undoBtn.disabled = !this.gameState.canUndo();
+        }
+        
+        if (redoBtn) {
+            redoBtn.disabled = !this.gameState.canRedo();
+        }
     }
 
     /**
@@ -438,16 +444,13 @@ class UIManager {
         if (this.game.redoMove()) {
             this.clearSelection();
             
-            // Make sure the board is re-rendered with the updated last move indicators
-            this.board.renderBoard();
-            
             // Update game status
             this.updateGameState();
             
             // If we're now on an AI's turn and the game is active, 
             // trigger the AI move or redo the next move
             if (this.game.isGameActive && !this.game.isHumanTurn()) {
-                if (this.game.redoStack.length > 0) {
+                if (this.gameState.canRedo()) {
                     // If there's a move to redo, use that
                     setTimeout(() => this.redoMove(), 10);
                 } else {

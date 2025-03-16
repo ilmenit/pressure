@@ -5,7 +5,8 @@ class Game {
     constructor() {
         this.board = new Board();
         this.moveManager = new MoveManager(this.board);
-        this.ai = new AIPlayer(this.board, this.moveManager);
+        this.gameState = new GameState(this.board, this.moveManager);
+        this.ai = new AIPlayer(this.board, this.moveManager, this.gameState);
         
         this.isGameActive = false;
         this.currentPlayer = 'white'; // White moves first
@@ -15,10 +16,6 @@ class Game {
         this.whiteAILevel = 1;
         this.winner = null;
         this.winReason = '';
-        
-        // Move history for undo/redo
-        this.moveHistory = [];
-        this.redoStack = [];
         
         // AI move processing flag
         this.isProcessingAIMove = false;
@@ -49,8 +46,7 @@ class Game {
         this.isProcessingAIMove = false;
         
         // Clear move history
-        this.moveHistory = [];
-        this.redoStack = [];
+        this.gameState.clearHistory();
         
         // Set up the board
         this.board.setupInitialPosition();
@@ -80,19 +76,26 @@ class Game {
     executePlayerMove(move) {
         if (!this.isGameActive) return;
         
-        // Save the current state for undo
-        this.saveStateForUndo();
+        // Execute the move using gameState with additional options
+        // Reset active status only if this is the first action of a turn
+        // Clear redo stack since we're making a new move
+        const options = {
+            resetActiveStatus: true, // Active tokens are reset at the start of each turn
+            clearRedoStack: true,
+            skipRendering: false,
+            additionalState: {
+                winner: this.winner,
+                winReason: this.winReason,
+                isGameActive: this.isGameActive
+            }
+        };
         
-        // Clear the redo stack when a new move is made
-        this.redoStack = [];
-        this.ui.updateUndoRedoButtons();
+        const capturedTokens = this.gameState.applyMove(move, this.currentPlayer, options);
         
-        // Before executing move, reset active status for current player's tokens
-        // This ensures tokens that were inactive last turn are now active
-        this.board.resetActiveStatus(this.currentPlayer);
-        
-        // Execute the move
-        const capturedTokens = this.moveManager.executeMove(move, this.currentPlayer);
+        // Update UI buttons
+        if (this.ui) {
+            this.ui.updateUndoRedoButtons();
+        }
         
         // Check for win conditions
         this.checkWinConditions(capturedTokens);
@@ -104,90 +107,96 @@ class Game {
     }
 
     /**
-     * Save the current state for undo
-     */
-    saveStateForUndo() {
-        const state = {
-            grid: this.board.getDeepCopy(),
-            currentPlayer: this.currentPlayer,
-            lastMoveFrom: this.board.lastMoveFrom ? {...this.board.lastMoveFrom} : null,
-            lastMoveTo: this.board.lastMoveTo ? {...this.board.lastMoveTo} : null,
-            winner: this.winner,
-            winReason: this.winReason,
-            isGameActive: this.isGameActive
-        };
-        
-        this.moveHistory.push(state);
-    }
-
-    /**
      * Undo the last move
      */
     undoMove() {
-        if (this.moveHistory.length === 0 || this.isProcessingAIMove) return false;
+        if (!this.gameState.canUndo() || this.isProcessingAIMove) return false;
         
-        // Save current state for redo
-        const currentState = {
-            grid: this.board.getDeepCopy(),
+        // Use gameState to undo the move
+        const result = this.gameState.undoLastMove({
+            saveForRedo: true,
             currentPlayer: this.currentPlayer,
-            lastMoveFrom: this.board.lastMoveFrom ? {...this.board.lastMoveFrom} : null,
-            lastMoveTo: this.board.lastMoveTo ? {...this.board.lastMoveTo} : null,
-            winner: this.winner,
-            winReason: this.winReason,
-            isGameActive: this.isGameActive
-        };
+            additionalState: {
+                winner: this.winner,
+                winReason: this.winReason,
+                isGameActive: this.isGameActive
+            }
+        });
         
-        this.redoStack.push(currentState);
-        
-        // Restore previous state
-        const previousState = this.moveHistory.pop();
-        this.board.restoreFromCopy(previousState.grid);
-        this.currentPlayer = previousState.currentPlayer;
-        this.board.lastMoveFrom = previousState.lastMoveFrom;
-        this.board.lastMoveTo = previousState.lastMoveTo;
-        this.winner = previousState.winner;
-        this.winReason = previousState.winReason;
-        this.isGameActive = previousState.isGameActive;
-        
-        // Hide win modal if it's showing and game is now active again
-        if (this.isGameActive) {
-            document.getElementById('win-modal').classList.add('hidden');
+        if (result.success) {
+            // Restore game-specific state
+            const state = result.state;
+            this.currentPlayer = state.currentPlayer;
+            
+            if (state.additionalState) {
+                this.winner = state.additionalState.winner;
+                this.winReason = state.additionalState.winReason;
+                this.isGameActive = state.additionalState.isGameActive;
+            }
+            
+            // Hide win modal if it's showing and game is now active again
+            if (this.isGameActive) {
+                const winModal = document.getElementById('win-modal');
+                if (winModal) {
+                    winModal.classList.add('hidden');
+                }
+            }
+            
+            // Update the UI
+            if (this.ui) {
+                this.ui.updateUndoRedoButtons();
+                this.board.renderBoard(); // Ensure board is rendered with updated state
+            }
+            
+            return true;
         }
         
-        // Update the UI
-        this.ui.updateUndoRedoButtons();
-        
-        return true;
+        return false;
     }
 
     /**
      * Redo a previously undone move
      */
     redoMove() {
-        if (this.redoStack.length === 0 || this.isProcessingAIMove) return false;
+        if (!this.gameState.canRedo() || this.isProcessingAIMove) return false;
         
-        // Save current state for undo
-        this.saveStateForUndo();
+        // Use gameState to redo the move
+        const result = this.gameState.redoMove({
+            saveForUndo: true,
+            currentPlayer: this.currentPlayer,
+            additionalState: {
+                winner: this.winner,
+                winReason: this.winReason,
+                isGameActive: this.isGameActive
+            }
+        });
         
-        // Restore state from redo stack
-        const nextState = this.redoStack.pop();
-        this.board.restoreFromCopy(nextState.grid);
-        this.currentPlayer = nextState.currentPlayer;
-        this.board.lastMoveFrom = nextState.lastMoveFrom;
-        this.board.lastMoveTo = nextState.lastMoveTo;
-        this.winner = nextState.winner;
-        this.winReason = nextState.winReason;
-        this.isGameActive = nextState.isGameActive;
-        
-        // Show win modal if game is not active and there is a winner
-        if (!this.isGameActive && this.winner) {
-            this.ui.showWinModal(this.winner, this.winReason);
+        if (result.success) {
+            // Restore game-specific state
+            const state = result.state;
+            this.currentPlayer = state.currentPlayer;
+            
+            if (state.additionalState) {
+                this.winner = state.additionalState.winner;
+                this.winReason = state.additionalState.winReason;
+                this.isGameActive = state.additionalState.isGameActive;
+            }
+            
+            // Show win modal if game is not active and there is a winner
+            if (!this.isGameActive && this.winner && this.ui) {
+                this.ui.showWinModal(this.winner, this.winReason);
+            }
+            
+            // Update the UI
+            if (this.ui) {
+                this.ui.updateUndoRedoButtons();
+                this.board.renderBoard(); // Ensure board is rendered with updated state
+            }
+            
+            return true;
         }
         
-        // Update the UI
-        this.ui.updateUndoRedoButtons();
-        
-        return true;
+        return false;
     }
 
     /**

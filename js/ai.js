@@ -2,11 +2,11 @@
  * AI Player with optimized move/undo system
  */
 class AIPlayer {
-    constructor(board, moveManager) {
+    constructor(board, moveManager, gameState) {
         this.board = board;
         this.moveManager = moveManager;
+        this.gameState = gameState;
         this.difficulty = 5; // Default difficulty (1-9 scale)
-        this.moveHistory = []; // Stack for move/undo system
         this.nodesEvaluated = 0;
         this.isThinking = false;
         this.thinkingStartTime = 0;
@@ -79,7 +79,7 @@ class AIPlayer {
         
         // Adjust search depth based on available moves to prevent very slow turns
         let searchDepth = this.difficulty;
-        if (movesToConsider.length > 10 && searchDepth > 6) {
+        if (movesToConsider.length > 8 && searchDepth > 6) {
             searchDepth = 6; // Moderate limitation
         } else if (movesToConsider.length > 14 && searchDepth > 4) {
             searchDepth = 4; // Limit depth for many available moves
@@ -98,8 +98,8 @@ class AIPlayer {
         let completedMoves = 0;
         
         for (const move of movesToConsider) {
-            // Apply the move with skipRendering=true
-            this.applyMove(move, color, true);
+            // Apply the move with AI simulation options
+            this.applyMove(move, color);
             
             // Evaluate this move by simulating opponent's best response
             let score;
@@ -114,7 +114,7 @@ class AIPlayer {
             }
             
             // Undo the move
-            this.undoLastMove();
+            this.gameState.undoLastMove();
             
             // Add move to evaluated list
             evaluatedMoves.push({ move, score });
@@ -204,15 +204,15 @@ class AIPlayer {
         const safeMoves = [];
         
         for (const move of moves) {
-            // Apply this move (with skipRendering=true)
-            this.applyMove(move, color, true);
+            // Apply this move for AI simulation
+            this.applyMove(move, color);
             
             // Check if any of our tokens were captured
             const capturedTokens = this.board.getLastCapturedTokens();
-            const selfCapture = capturedTokens.some(token => token.color === color);
+            const selfCapture = capturedTokens && capturedTokens.some(token => token.color === color);
             
             // Undo the move
-            this.undoLastMove();
+            this.gameState.undoLastMove();
             
             // Keep only non-suicidal moves
             if (!selfCapture) {
@@ -221,6 +221,20 @@ class AIPlayer {
         }
         
         return safeMoves;
+    }
+    
+    /**
+     * Apply a move for AI simulation
+     */
+    applyMove(move, color) {
+        // Apply the move with AI simulation options
+        // We use forAISimulation: true to ensure we use the efficient minimal state tracking approach
+        // resetActiveStatus: false because we're just simulating, not actually starting a new turn
+        return this.gameState.applyMove(move, color, {
+            skipRendering: true,
+            forAISimulation: true,
+            resetActiveStatus: false
+        });
     }
     
     /**
@@ -259,9 +273,9 @@ class AIPlayer {
             let maxEval = -Infinity;
             
             for (const move of possibleMoves) {
-                this.applyMove(move, color, true);
+                this.applyMove(move, color);
                 const evaluation = this.minimax(depth - 1, oppositeColor, alpha, beta, false);
-                this.undoLastMove();
+                this.gameState.undoLastMove();
                 
                 maxEval = Math.max(maxEval, evaluation);
                 alpha = Math.max(alpha, evaluation);
@@ -275,9 +289,9 @@ class AIPlayer {
             let minEval = Infinity;
             
             for (const move of possibleMoves) {
-                this.applyMove(move, color, true);
+                this.applyMove(move, color);
                 const evaluation = this.minimax(depth - 1, oppositeColor, alpha, beta, true);
-                this.undoLastMove();
+                this.gameState.undoLastMove();
                 
                 minEval = Math.min(minEval, evaluation);
                 beta = Math.min(beta, evaluation);
@@ -377,147 +391,5 @@ class AIPlayer {
         }
         
         return surroundedSides;
-    }
-    
-    /**
-     * Apply a move and save state for undo
-     * This is the core optimization that avoids expensive board cloning
-     */
-    applyMove(move, color, skipRendering = false) {
-        // Save the current state
-        const state = {
-            move: move,
-            color: color,
-            // Save pieces that will be affected (moved or captured)
-            affected: this.getAffectedPositions(move)
-        };
-        
-        // Record the current state of affected positions
-        state.affectedTokens = state.affected.map(pos => {
-            const token = this.board.getTokenAt(pos.row, pos.col);
-            if (token) {
-                // Create a deep copy of the token to prevent reference issues
-                return {
-                    position: { ...pos },
-                    token: { 
-                        color: token.color,
-                        isActive: token.isActive,
-                        isCaptured: token.isCaptured
-                    }
-                };
-            } else {
-                return {
-                    position: { ...pos },
-                    token: null
-                };
-            }
-        });
-        
-        // Save last captured tokens array state
-        if (this.board.lastCapturedTokens) {
-            state.lastCapturedTokens = [...this.board.lastCapturedTokens];
-        } else {
-            state.lastCapturedTokens = [];
-        }
-        
-        // Save board state before move
-        state.capturedBefore = { ...this.board.countCapturedTokens() };
-        
-        // Execute the move with skipRendering flag
-        const capturedTokens = this.moveManager.executeMove(move, color, skipRendering);
-        
-        // Save captured tokens after move
-        state.capturedAfter = { ...this.board.countCapturedTokens() };
-        
-        // Add to history stack
-        this.moveHistory.push(state);
-        
-        return state;
-    }
-    
-    /**
-     * Get all positions that will be affected by a move
-     * This is critical for the undo system to work correctly
-     */
-    getAffectedPositions(move) {
-        const positions = [move.from, move.to];
-        
-        // If it's a push, add all positions in the push line
-        if (move.type === 'push' && move.tokens) {
-            // Add all tokens being pushed
-            for (const tokenPos of move.tokens) {
-                positions.push({ ...tokenPos });
-                
-                // Also add the position where each token will end up
-                const { dr, dc } = this.moveManager.getDirectionVector(move.direction);
-                positions.push({
-                    row: tokenPos.row + dr,
-                    col: tokenPos.col + dc
-                });
-            }
-        }
-        
-        // Add surrounding positions (for capture checks)
-        const directions = [
-            {dr: -1, dc: 0}, // Up
-            {dr: 1, dc: 0},  // Down
-            {dr: 0, dc: -1}, // Left
-            {dr: 0, dc: 1}   // Right
-        ];
-        
-        // Add positions around the destination and all moved tokens (potential captures)
-        const positionsToCheck = [...positions];
-        for (const pos of positionsToCheck) {
-            for (const dir of directions) {
-                positions.push({
-                    row: pos.row + dir.dr,
-                    col: pos.col + dir.dc
-                });
-            }
-        }
-        
-        // Filter out duplicate positions and invalid positions
-        const uniqueValidPositions = [];
-        const seen = new Set();
-        
-        for (const pos of positions) {
-            const key = `${pos.row},${pos.col}`;
-            if (!seen.has(key) && 
-                pos.row >= 0 && pos.row < this.board.size && 
-                pos.col >= 0 && pos.col < this.board.size) {
-                seen.add(key);
-                uniqueValidPositions.push({ ...pos });
-            }
-        }
-        
-        return uniqueValidPositions;
-    }
-    
-    /**
-     * Undo the last move
-     * This is the key optimization that makes deep search possible
-     */
-    undoLastMove() {
-        if (this.moveHistory.length === 0) return;
-        
-        const state = this.moveHistory.pop();
-        
-        // Restore all affected positions
-        for (const item of state.affectedTokens) {
-            this.board.grid[item.position.row][item.position.col] = item.token;
-        }
-        
-        // Restore last captured tokens array
-        if (this.board.lastCapturedTokens) {
-            this.board.lastCapturedTokens = state.lastCapturedTokens;
-        }
-        
-        // Restore last move indicators
-        if (state.move.from) {
-            this.board.lastMoveFrom = state.move.from;
-        }
-        if (state.move.to) {
-            this.board.lastMoveTo = state.move.to;
-        }
     }
 }
