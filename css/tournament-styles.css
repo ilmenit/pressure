@@ -1,0 +1,239 @@
+/* Tournament Mode Styles */
+
+/* Main Menu */
+.mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 400px;
+    width: 100%;
+    margin: 20px auto;
+}
+
+/* Tournament Ladder */
+.tournament-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.tournament-ladder {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 20px 0;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: #1E1E1E;
+    border-radius: 8px;
+}
+
+.ladder-opponent {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background-color: #333333;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.ladder-opponent.current {
+    background-color: #4A6FA5;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(74, 111, 165, 0.7);
+}
+
+.ladder-opponent.defeated {
+    opacity: 0.6;
+}
+
+.opponent-portrait {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #555555;
+    flex-shrink: 0;
+}
+
+.ladder-opponent.current .opponent-portrait {
+    border-color: #FFD700;
+}
+
+.opponent-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.opponent-info {
+    flex: 1;
+}
+
+.opponent-name {
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+}
+
+.opponent-difficulty {
+    color: #FFD700;
+    font-size: 0.9rem;
+}
+
+.opponent-status {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #4A6FA5;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.tournament-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* Opponent Display in Game */
+#opponent-display {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 8px;
+    z-index: 10;
+}
+
+#opponent-portrait {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #4A6FA5;
+}
+
+#opponent-info {
+    text-align: center;
+    margin-top: 10px;
+    color: white;
+}
+
+/* Commentary Bubble */
+.commentary-bubble {
+    position: absolute;
+    top: 110px;
+    right: 30px;
+    background-color: #1E1E1E;
+    color: white;
+    padding: 12px 15px;
+    border-radius: 8px;
+    max-width: 220px;
+    z-index: 20;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s;
+    pointer-events: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.commentary-bubble.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.commentary-bubble::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    right: 20px;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid #1E1E1E;
+}
+
+/* Tournament Victory */
+.tournament-victory {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background-color: #333333;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 500px;
+    margin: 30px auto;
+    text-align: center;
+}
+
+/* Tournament Retry Button */
+.tournament-retry-btn {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 25px;
+    background-color: #4A6FA5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    z-index: 20;
+}
+
+.tournament-retry-btn:hover {
+    background-color: #3A5A80;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #opponent-display {
+        top: 10px;
+        right: 10px;
+    }
+    
+    #opponent-portrait {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .commentary-bubble {
+        top: 80px;
+        right: 20px;
+        max-width: 180px;
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Smaller screens */
+@media (max-width: 500px) {
+    .opponent-portrait {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .ladder-opponent {
+        padding: 10px;
+    }
+    
+    .opponent-status {
+        font-size: 0.8rem;
+        padding: 3px 8px;
+    }
+}
