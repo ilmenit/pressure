@@ -16,7 +16,11 @@
         // If tournament mode is active, adjust settings if needed
         if (this.isTournamentMode && this.currentOpponent) {
             // For tournament mode, we might want to add specific behaviors here
-            // For now, just showing that we can extend the method
+            
+            // FIXED: Ensure UI is updated to disable undo/redo buttons
+            if (this.ui) {
+                this.ui.updateUndoRedoButtons();
+            }
         }
     };
     

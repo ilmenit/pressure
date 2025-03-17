@@ -1,4 +1,4 @@
-/* Tournament Mode Styles */
+/* Tournament Mode Styles with color consistency fix */
 
 /* Main Menu */
 .mode-buttons {
@@ -48,14 +48,54 @@
     box-sizing: border-box;
 }
 
+/* FIXED: Changed current opponent styling to use border instead of blue background */
 .ladder-opponent.current {
-    background-color: #4A6FA5;
+    background-color: #33373D; /* Darker gray instead of blue */
+    border: 2px solid #FFD700; /* Gold border */
     transform: scale(1.02); /* Reduced scale to prevent overflow */
-    box-shadow: 0 0 15px rgba(74, 111, 165, 0.7);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); /* Gold glow */
 }
 
 .ladder-opponent.defeated {
     opacity: 0.6;
+}
+
+/* Player vs Opponent section for current opponent */
+.player-vs-opponent {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+}
+
+/* FIXED: Increased player portrait size to match opponent */
+.player-mini-portrait {
+    width: 80px; /* Changed from 40px to 80px to match opponent portrait */
+    height: 80px; /* Changed from 40px to 80px to match opponent portrait */
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #FFFFFF;
+    flex-shrink: 0;
+}
+
+.player-mini-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* FIXED: Improved VS indicator positioning */
+.vs-indicator {
+    margin: 0 15px; /* Increased horizontal margin */
+    color: #FFD700;
+    font-weight: bold;
+    font-size: 1rem; /* Increased font size */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    width: 30px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
 }
 
 .opponent-portrait {
@@ -97,12 +137,13 @@
     font-size: 0.9rem;
 }
 
+/* FIXED: Changed status badge to use a different color than buttons */
 .opponent-status {
     position: absolute;
     right: 15px;
     top: 50%;
     transform: translateY(-50%);
-    background-color: #4A6FA5;
+    background-color: #2E7D32; /* Green color for status */
     padding: 5px 10px;
     border-radius: 4px;
     font-size: 0.9rem;
@@ -131,32 +172,11 @@
     overflow: hidden;
 }
 
+/* FIXED: Changed progress fill color to be different from buttons */
 .progress-fill {
     height: 100%;
-    background-color: #4A6FA5;
+    background-color: #FFD700; /* Gold color for progress */
     transition: width 0.5s ease;
-}
-
-.current-opponent-indicator {
-    margin-bottom: 15px;
-    padding: 10px;
-    background-color: #4A6FA5;
-    border-radius: 8px;
-    text-align: center;
-    font-size: 1rem;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        background-color: #4A6FA5;
-    }
-    50% {
-        background-color: #3a5a80;
-    }
-    100% {
-        background-color: #4A6FA5;
-    }
 }
 
 /* Tournament Controls */
@@ -190,13 +210,46 @@
     height: 80px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #4A6FA5;
+    border: 3px solid #FFD700; /* Changed to gold to match theme */
 }
 
 #opponent-info {
     text-align: center;
     margin-top: 10px;
     color: white;
+}
+
+/* Player Display in Game */
+#player-display {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 8px;
+    z-index: 10;
+}
+
+#player-portrait {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #FFFFFF; /* White border to distinguish from opponent */
+}
+
+#player-info {
+    text-align: center;
+    margin-top: 10px;
+    color: white;
+}
+
+.player-name {
+    font-weight: bold;
+    font-size: 1.2rem;
 }
 
 /* Commentary Bubble */
@@ -268,11 +321,12 @@
 }
 
 /* Modal button styling for tournament */
-#tournament-continue-btn {
+#tournament-continue-btn, #tournament-ladder-btn {
     background-color: #4A6FA5;
     color: white;
     border: none;
     padding: 12px 20px;
+    margin-bottom: 10px;
     border-radius: 4px;
     font-size: 1.1rem;
     cursor: pointer;
@@ -282,13 +336,13 @@
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
-#tournament-continue-btn:hover {
+#tournament-continue-btn:hover, #tournament-ladder-btn:hover {
     background-color: #3A5A80;
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.3);
 }
 
-#tournament-continue-btn:active {
+#tournament-continue-btn:active, #tournament-ladder-btn:active {
     transform: translateY(1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
@@ -317,14 +371,75 @@
     }
 }
 
+/* Tournament Settings Screen */
+#tournament-settings {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow: auto;
+    background-color: #121212;
+    z-index: 10;
+}
+
+.settings-container {
+    background-color: #1E1E1E;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.settings-item {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.settings-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.settings-item h2 {
+    margin-top: 0;
+    text-align: left;
+}
+
+.settings-item p {
+    color: #CCC;
+    margin-bottom: 15px;
+}
+
+/* Danger button */
+#tournament-reset-btn {
+    background-color: #E74C3C;
+}
+
+#tournament-reset-btn:hover {
+    background-color: #C0392B;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    #opponent-display {
+    #opponent-display, #player-display {
         top: 10px;
+    }
+    
+    #opponent-display {
         right: 10px;
     }
     
-    #opponent-portrait {
+    #player-display {
+        left: 10px;
+    }
+    
+    #player-portrait, #opponent-portrait {
         width: 60px;
         height: 60px;
     }
@@ -349,14 +464,45 @@
         font-size: 0.9rem;
     }
     
-    .current-opponent-indicator {
+    .player-name, .opponent-name {
+        font-size: 1rem;
+    }
+    
+    /* FIXED: Updated player mini portrait size for responsive views */
+    .player-mini-portrait {
+        width: 60px;
+        height: 60px;
+    }
+    
+    /* FIXED: Adjusted VS indicator for responsive layout */
+    .vs-indicator {
+        margin: 0 10px;
+        height: 25px;
+        width: 25px;
         font-size: 0.9rem;
-        padding: 8px;
     }
 }
 
 /* Smaller screens */
 @media (max-width: 500px) {
+    #player-display, #opponent-display {
+        padding: 5px;
+    }
+    
+    #player-portrait, #opponent-portrait {
+        width: 50px;
+        height: 50px;
+        border-width: 2px;
+    }
+    
+    #player-info, #opponent-info {
+        margin-top: 5px;
+    }
+    
+    .player-name, .opponent-name {
+        font-size: 0.9rem;
+    }
+    
     .opponent-portrait {
         width: 50px;
         height: 50px;
@@ -388,10 +534,6 @@
         font-size: 40px;
     }
     
-    .current-opponent-indicator {
-        margin-bottom: 10px;
-    }
-    
     /* Fix modal content on small screens */
     .modal-content {
         width: 95%;
@@ -409,4 +551,46 @@
         padding: 0 10px;
         box-sizing: border-box;
     }
+    
+    /* FIXED: Updated player mini portrait size for very small screens */
+    .player-mini-portrait {
+        width: 50px;
+        height: 50px;
+    }
+    
+    /* FIXED: Adjusted VS indicator for very small screens */
+    .vs-indicator {
+        margin: 0 5px;
+        height: 20px;
+        width: 20px;
+        font-size: 0.7rem;
+    }
+}
+
+/* Styles for draggable tokens */
+.token.draggable {
+    cursor: grab;
+}
+
+.token.dragging {
+    cursor: grabbing;
+    opacity: 0.8;
+}
+
+/* Visual indicator for valid drop targets when dragging */
+.cell.valid-drop-target {
+    background-color: #665200;
+    box-shadow: inset 0 0 0 2px #FFD700;
+}
+
+/* Ghost element that follows the cursor when dragging */
+.drag-ghost {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1000;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    opacity: 0.8;
+    transform: translate(-50%, -50%);
 }

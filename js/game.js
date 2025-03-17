@@ -20,6 +20,10 @@ class Game {
         // AI move processing flag
         this.isProcessingAIMove = false;
         
+        // FIXED: Add tournament mode flags
+        this.isTournamentMode = false;
+        this.currentOpponent = null;
+        
         // Create UI manager after DOM is loaded
         this.ui = null;
     }
@@ -53,6 +57,11 @@ class Game {
         
         // Set AI strength
         this.ai.setStrength(this.currentPlayer === 'black' ? this.blackAILevel : this.whiteAILevel);
+        
+        // FIXED: Update UI for undo/redo buttons based on tournament mode
+        if (this.ui) {
+            this.ui.updateUndoRedoButtons();
+        }
         
         // If AI starts, make its move
         if (this.currentPlayer === 'white' && this.whitePlayerType === 'ai') {
@@ -110,7 +119,8 @@ class Game {
      * Undo the last move
      */
     undoMove() {
-        if (!this.gameState.canUndo() || this.isProcessingAIMove) return false;
+        // FIXED: Add check for tournament mode
+        if (this.isTournamentMode || !this.gameState.canUndo() || this.isProcessingAIMove) return false;
         
         // Use gameState to undo the move
         const result = this.gameState.undoLastMove({
@@ -158,7 +168,8 @@ class Game {
      * Redo a previously undone move
      */
     redoMove() {
-        if (!this.gameState.canRedo() || this.isProcessingAIMove) return false;
+        // FIXED: Add check for tournament mode
+        if (this.isTournamentMode || !this.gameState.canRedo() || this.isProcessingAIMove) return false;
         
         // Use gameState to redo the move
         const result = this.gameState.redoMove({

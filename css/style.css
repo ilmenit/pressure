@@ -318,8 +318,9 @@ h3 {
     justify-content: center;
 }
 
+/* FIXED: Changed the default button style to match other buttons (blue) */
 .game-controls button {
-    background-color: #333333;
+    background-color: #4A6FA5; /* Changed from #333333 to #4A6FA5 to match other buttons */
     color: white;
     border: none;
     padding: 12px 25px;
@@ -330,7 +331,7 @@ h3 {
 }
 
 .game-controls button:hover {
-    background-color: #4A6FA5;
+    background-color: #3A5A80; /* Slightly darker blue on hover */
 }
 
 .game-controls button:disabled {

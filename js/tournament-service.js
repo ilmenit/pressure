@@ -122,8 +122,8 @@ function setupTournamentElements() {
     // Handle tournament completion visualization
     setupTournamentCompletion();
     
-    // Add hover effects to ladder opponents
-    setupLadderInteractions();
+    // FIXED: Removed opponent selection behavior - no more ladder item selection
+    // We no longer call setupLadderInteractions()
 }
 
 /**
@@ -171,23 +171,6 @@ function addCompletionEffects(container) {
             }
         }, 5000);
     }
-}
-
-/**
- * Setup interactive ladder elements
- */
-function setupLadderInteractions() {
-    // Add selection handling to ladder opponents
-    document.addEventListener('click', (e) => {
-        const opponent = e.target.closest('.ladder-opponent');
-        if (opponent && !opponent.classList.contains('defeated')) {
-            // Handle opponent selection
-            document.querySelectorAll('.ladder-opponent.selected').forEach(el => {
-                el.classList.remove('selected');
-            });
-            opponent.classList.add('selected');
-        }
-    });
 }
 
 /**

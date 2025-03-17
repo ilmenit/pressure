@@ -63,6 +63,34 @@ function setupMainMenuListeners() {
         console.error("Missing element: tutorial-mode-btn");
     }
     
+    // Add tournament settings button to main menu
+    const mainMenu = document.getElementById('main-menu');
+    if (mainMenu) {
+        // Check if tournament settings button already exists
+        let tournamentSettingsBtn = document.getElementById('tournament-settings-btn');
+        if (!tournamentSettingsBtn) {
+            // Create the button if it doesn't exist
+            tournamentSettingsBtn = document.createElement('button');
+            tournamentSettingsBtn.id = 'tournament-settings-btn';
+            tournamentSettingsBtn.className = 'large-btn';
+            tournamentSettingsBtn.style.marginTop = '20px';
+            tournamentSettingsBtn.textContent = 'Tournament Settings';
+            
+            // Add it to the main menu
+            const modeButtons = mainMenu.querySelector('.mode-buttons');
+            if (modeButtons) {
+                modeButtons.appendChild(tournamentSettingsBtn);
+            } else {
+                mainMenu.appendChild(tournamentSettingsBtn);
+            }
+            
+            // Add click handler for tournament settings
+            tournamentSettingsBtn.addEventListener('click', () => {
+                showTournamentSettings();
+            });
+        }
+    }
+    
     // Standard mode setup controls
     const standardStartBtn = document.getElementById('standard-start-game-btn');
     if (standardStartBtn) {
@@ -149,6 +177,11 @@ function setupMainMenuListeners() {
                 
                 if (mainMenu) mainMenu.classList.add('hidden');
                 if (gameScreen) gameScreen.classList.remove('hidden');
+                
+                // FIXED: Ensure undo/redo buttons are properly shown/hidden
+                if (game.ui) {
+                    game.ui.updateUndoRedoButtons();
+                }
             } 
             // If in tournament mode
             else if (game.isTournamentMode) {
@@ -160,9 +193,16 @@ function setupMainMenuListeners() {
                 if (game.isGameActive) {
                     const gameScreen = document.getElementById('game-screen');
                     const opponentDisplay = document.getElementById('opponent-display');
+                    const playerDisplay = document.getElementById('player-display');
                     
                     if (gameScreen) gameScreen.classList.remove('hidden');
                     if (opponentDisplay) opponentDisplay.classList.remove('hidden');
+                    if (playerDisplay) playerDisplay.classList.remove('hidden');
+                    
+                    // FIXED: Ensure undo/redo buttons are properly hidden
+                    if (game.ui) {
+                        game.ui.updateUndoRedoButtons();
+                    }
                 } 
                 // Otherwise show tournament screen
                 else {
@@ -187,7 +227,8 @@ function showMainMenu() {
         'standard-setup',
         'tournament-screen',
         'tournament-complete-screen',
-        'game-screen'
+        'game-screen',
+        'tournament-settings'
     ];
     
     screens.forEach(screenId => {
@@ -239,6 +280,62 @@ function showTournamentScreen() {
 }
 
 /**
+ * Show tournament settings with reset function
+ */
+function showTournamentSettings() {
+    // Hide main menu
+    const mainMenu = document.getElementById('main-menu');
+    if (mainMenu) {
+        mainMenu.classList.add('hidden');
+    }
+    
+    // Create settings div if it doesn't exist
+    let tournamentSettings = document.getElementById('tournament-settings');
+    if (!tournamentSettings) {
+        tournamentSettings = document.createElement('div');
+        tournamentSettings.id = 'tournament-settings';
+        tournamentSettings.className = 'screen';
+        tournamentSettings.innerHTML = `
+            <h1>Tournament Settings</h1>
+            <div class="settings-container" style="display: flex; flex-direction: column; gap: 20px; max-width: 400px; margin: 20px auto;">
+                <div class="settings-item">
+                    <h2>Reset Tournament Progress</h2>
+                    <p>This will reset all your tournament progress. Defeated opponents will be marked as undefeated.</p>
+                    <button id="tournament-reset-btn" class="large-btn" style="background-color: #E74C3C;">Reset Progress</button>
+                </div>
+                <button id="settings-back-btn" class="large-btn">Back to Main Menu</button>
+            </div>
+        `;
+        document.body.appendChild(tournamentSettings);
+        
+        // Add event listeners for new elements
+        const resetBtn = document.getElementById('tournament-reset-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset your tournament progress? This cannot be undone.')) {
+                    // Reset the tournament progress
+                    if (tournamentManager) {
+                        tournamentManager.resetProgress();
+                        alert('Tournament progress has been reset.');
+                    }
+                }
+            });
+        }
+        
+        const backBtn = document.getElementById('settings-back-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                tournamentSettings.classList.add('hidden');
+                showMainMenu();
+            });
+        }
+    }
+    
+    // Show settings screen
+    tournamentSettings.classList.remove('hidden');
+}
+
+/**
  * Start standard game
  */
 function startStandardGame() {
@@ -275,6 +372,12 @@ function startStandardGame() {
         opponentDisplay.classList.add('hidden');
     }
     
+    // Hide player display if visible
+    const playerDisplay = document.getElementById('player-display');
+    if (playerDisplay) {
+        playerDisplay.classList.add('hidden');
+    }
+    
     // Initialize the game
     game.initialize(blackPlayerType, whitePlayerType, blackAILevel, whiteAILevel);
     
@@ -295,5 +398,10 @@ function startStandardGame() {
     const resumeGameBtn = document.getElementById('resume-game-btn');
     if (resumeGameBtn) {
         resumeGameBtn.classList.remove('hidden');
+    }
+    
+    // FIXED: Ensure undo/redo buttons are properly shown
+    if (game.ui) {
+        game.ui.updateUndoRedoButtons();
     }
 }

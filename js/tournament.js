@@ -308,17 +308,6 @@ class TournamentManager {
             });
         }
         
-        // Reset progress button
-        const resetTournamentBtn = document.getElementById('reset-tournament-btn');
-        if (resetTournamentBtn) {
-            resetTournamentBtn.addEventListener('click', () => {
-                if (confirm('Are you sure you want to reset your tournament progress?')) {
-                    this.resetProgress();
-                    this.renderLadder();
-                }
-            });
-        }
-        
         // Try again button
         const retryBtn = document.getElementById('tournament-retry-btn');
         if (retryBtn) {
@@ -372,6 +361,11 @@ class TournamentManager {
         // Initialize game with player as white, AI as black
         this.game.initialize('human', 'ai', 0, opponent.difficulty);
         
+        // FIXED: Hide undo/redo buttons in tournament mode
+        if (this.game.ui) {
+            this.game.ui.updateUndoRedoButtons();
+        }
+        
         // Show opponent display
         const opponentDisplay = document.getElementById('opponent-display');
         const opponentPortrait = document.getElementById('opponent-portrait');
@@ -401,6 +395,38 @@ class TournamentManager {
                     ${'★'.repeat(opponent.difficulty)}${'☆'.repeat(3 - opponent.difficulty)}
                 </div>
             `;
+        }
+        
+        // Add player display if not already present
+        let playerDisplay = document.getElementById('player-display');
+        if (!playerDisplay) {
+            playerDisplay = document.createElement('div');
+            playerDisplay.id = 'player-display';
+            playerDisplay.className = 'player-display';
+            
+            const playerPortrait = document.createElement('img');
+            playerPortrait.id = 'player-portrait';
+            playerPortrait.src = 'assets/characters/player.webp';
+            playerPortrait.alt = 'Player';
+            // Fallback if player image doesn't load
+            playerPortrait.onerror = function() {
+                playerPortrait.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMzQTVBODAiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjM1IiByPSIyMCIgZmlsbD0iI2U2ZTZlNiIvPjxyZWN0IHg9IjMwIiB5PSI2MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjMwIiByeD0iNSIgZmlsbD0iI2U2ZTZlNiIvPjx0ZXh0IHg9IjUwIiB5PSI5MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGxheWVyPC90ZXh0Pjwvc3ZnPg==';
+            };
+            
+            const playerInfo = document.createElement('div');
+            playerInfo.id = 'player-info';
+            playerInfo.innerHTML = '<div class="player-name">You</div>';
+            
+            playerDisplay.appendChild(playerPortrait);
+            playerDisplay.appendChild(playerInfo);
+            
+            // Add to game screen on the left side
+            const gameScreen = document.getElementById('game-screen');
+            if (gameScreen) {
+                gameScreen.appendChild(playerDisplay);
+            }
+        } else {
+            playerDisplay.classList.remove('hidden');
         }
         
         // Show start commentary
@@ -497,7 +523,7 @@ class TournamentManager {
             // Update last capture time
             this.captureCounter.lastCaptureTime = now;
             
-            // If player's token was captured
+            // If player's token was captured (white is player, black is opponent)
             if (tokenColor === 'white') {
                 this.displayCommentary('opponentCapture');
             } 
@@ -517,8 +543,15 @@ class TournamentManager {
         // Show appropriate commentary
         this.displayCommentary(isPlayerWin ? 'lose' : 'win');
         
-        // If player won, create a visible tournament victory message and progress button
+        // If player won
         if (isPlayerWin) {
+            // IMPORTANT: Save progress immediately upon victory
+            // This ensures progress isn't lost if player uses menu button
+            if (this.currentOpponentIndex < this.opponents.length) {
+                this.opponents[this.currentOpponentIndex].defeated = true;
+                this.saveProgress();
+            }
+        
             // Override win modal with tournament advancement UI
             const winModal = document.getElementById('win-modal');
             const winModalTitle = document.getElementById('win-modal-title');
@@ -540,16 +573,19 @@ class TournamentManager {
                     <div class="victory-feedback">
                         ${isLastOpponent 
                             ? 'Final boss conquered!' 
-                            : `Opponent ${defeatedCount + 1} of ${totalOpponents} defeated!`}
+                            : `Opponent ${defeatedCount} of ${totalOpponents} defeated!`}
                     </div>
                 `;
                 
-                // Replace buttons with continue button
+                // Replace buttons with continue button and return to ladder button
                 winModalButtons.innerHTML = `
                     <button id="tournament-continue-btn" class="large-btn">
                         ${isLastOpponent 
                             ? 'Claim Your Championship Trophy' 
                             : 'Continue to Next Opponent'}
+                    </button>
+                    <button id="tournament-ladder-btn" class="large-btn">
+                        Return to Tournament Ladder
                     </button>
                 `;
                 
@@ -576,6 +612,18 @@ class TournamentManager {
                     setTimeout(() => {
                         continueBtn.focus();
                     }, 100);
+                }
+                
+                // Add event listener to ladder button
+                const ladderBtn = document.getElementById('tournament-ladder-btn');
+                if (ladderBtn) {
+                    ladderBtn.addEventListener('click', () => {
+                        // Hide win modal
+                        winModal.classList.add('hidden');
+                        
+                        // Return to tournament ladder without advancing
+                        this.showTournamentScreen();
+                    });
                 }
             } else {
                 // Fallback if modal elements not found
@@ -780,7 +828,6 @@ class TournamentManager {
         // Calculate progress 
         const defeatedCount = this.opponents.filter(o => o.defeated).length;
         const totalOpponents = this.opponents.length;
-        const currentOpponentNumber = this.currentOpponentIndex + 1;
         
         progressElement.innerHTML = `
             <div class="progress-text">
@@ -792,17 +839,6 @@ class TournamentManager {
         `;
         
         ladderElement.appendChild(progressElement);
-        
-        // Add current opponent indicator
-        if (!this.tournamentCompleted) {
-            const currentOpponent = this.getCurrentOpponent();
-            if (currentOpponent) {
-                const currentElement = document.createElement('div');
-                currentElement.className = 'current-opponent-indicator';
-                currentElement.innerHTML = `Current Challenge: <strong>${currentOpponent.name}</strong> (Opponent ${currentOpponentNumber} of ${totalOpponents})`;
-                ladderElement.appendChild(currentElement);
-            }
-        }
         
         // Add all opponents to ladder
         this.opponents.forEach((opponent, index) => {
@@ -816,9 +852,30 @@ class TournamentManager {
             
             if (index === this.currentOpponentIndex && !opponent.defeated) {
                 opponentElement.classList.add('current');
+                
+                // Update the button text for the current opponent
+                const startMatchBtn = document.getElementById('start-match-btn');
+                if (startMatchBtn) {
+                    startMatchBtn.textContent = `Challenge ${opponent.name}`;
+                }
             }
             
-            opponentElement.innerHTML = `
+            // Check if this is the current opponent and not defeated
+            let opponentHTML = '';
+            
+            if (index === this.currentOpponentIndex && !opponent.defeated) {
+                // Include player icon for the current opponent
+                opponentHTML = `
+                    <div class="player-vs-opponent">
+                        <div class="player-mini-portrait">
+                            <img src="assets/characters/player.webp" alt="Player" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgdmlld0JveD0iMCAwIDUwIDUwIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMzQTVBODAiLz48Y2lyY2xlIGN4PSIyNSIgY3k9IjIwIiByPSIxMCIgZmlsbD0iI2U2ZTZlNiIvPjxyZWN0IHg9IjE1IiB5PSIzMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE1IiByeD0iMyIgZmlsbD0iI2U2ZTZlNiIvPjwvc3ZnPg=='">
+                        </div>
+                        <div class="vs-indicator">VS</div>
+                    </div>
+                `;
+            }
+            
+            opponentHTML += `
                 <div class="opponent-portrait">
                     <img src="assets/characters/${opponent.image}" alt="${opponent.name}">
                 </div>
@@ -831,8 +888,10 @@ class TournamentManager {
                 ${opponent.defeated ? '<div class="opponent-status">Defeated</div>' : ''}
             `;
             
+            opponentElement.innerHTML = opponentHTML;
+            
             // Handle image loading errors
-            const img = opponentElement.querySelector('img');
+            const img = opponentElement.querySelector('.opponent-portrait img');
             if (img) {
                 img.onerror = function() {
                     // If image loading fails, try to get from localStorage fallback
@@ -847,6 +906,14 @@ class TournamentManager {
                     } catch (e) {
                         console.error("Error using fallback image:", e);
                     }
+                };
+            }
+            
+            // Also handle player image loading errors
+            const playerImg = opponentElement.querySelector('.player-mini-portrait img');
+            if (playerImg) {
+                playerImg.onerror = function() {
+                    playerImg.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgdmlld0JveD0iMCAwIDUwIDUwIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMzQTVBODAiLz48Y2lyY2xlIGN4PSIyNSIgY3k9IjIwIiByPSIxMCIgZmlsbD0iI2U2ZTZlNiIvPjxyZWN0IHg9IjE1IiB5PSIzMCIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE1IiByeD0iMyIgZmlsbD0iI2U2ZTZlNiIvPjwvc3ZnPg==';
                 };
             }
             
