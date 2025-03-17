@@ -188,6 +188,59 @@ class TournamentManager {
                 }
             });
         }
+        
+        // Create tournament progress element outside of the ladder
+        this.createTournamentProgress();
+    }
+    
+    /**
+     * Create the tournament progress element outside of the scrollable ladder
+     */
+    createTournamentProgress() {
+        // Check if the progress element already exists outside the ladder
+        if (!document.getElementById('tournament-progress-fixed')) {
+            const tournamentContainer = document.querySelector('.tournament-container');
+            if (tournamentContainer) {
+                // Create progress element to be placed before the ladder
+                const progressElement = document.createElement('div');
+                progressElement.id = 'tournament-progress-fixed';
+                progressElement.className = 'tournament-progress';
+                
+                // Add initial content (will be updated in renderLadder)
+                progressElement.innerHTML = `
+                    <div class="progress-text">
+                        <span>Progress: 0 / ${this.opponents.length} opponents defeated</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                `;
+                
+                // Insert before the first child (which should be the ladder)
+                tournamentContainer.insertBefore(progressElement, tournamentContainer.firstChild);
+            }
+        }
+    }
+    
+    /**
+     * Update the fixed progress bar
+     */
+    updateFixedProgressBar() {
+        const progressElement = document.getElementById('tournament-progress-fixed');
+        if (!progressElement) return;
+        
+        // Calculate progress 
+        const defeatedCount = this.opponents.filter(o => o.defeated).length;
+        const totalOpponents = this.opponents.length;
+        
+        progressElement.innerHTML = `
+            <div class="progress-text">
+                <span>Progress: ${defeatedCount} / ${totalOpponents} opponents defeated</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: ${(defeatedCount / totalOpponents) * 100}%"></div>
+            </div>
+        `;
     }
     
     /**
@@ -404,6 +457,8 @@ class TournamentManager {
     
     /**
      * Handle token capture event
+     * 
+     * @param {string} tokenColor - The color of the token that was captured
      */
     handleTokenCapture(tokenColor) {
         // Initialize capture tracking
@@ -430,13 +485,17 @@ class TournamentManager {
             // Update last capture time
             this.captureCounter.lastCaptureTime = now;
             
-            // If player's token was captured
-            if (tokenColor === this.playerColor) {
-                this.displayCommentary('opponentCapture');
-            } 
-            // If opponent's token was captured
-            else if (tokenColor === this.aiColor) {
+            // FIXED: Swap the dialog types to match their correct meanings
+            
+            // If AI's token was captured - show "capture" dialog
+            // This is what the opponent says when their token is captured
+            if (tokenColor === this.aiColor) {
                 this.displayCommentary('capture');
+            } 
+            // If player's token was captured - show "opponentCapture" dialog
+            // This is what the opponent says when they capture the player's token
+            else if (tokenColor === this.playerColor) {
+                this.displayCommentary('opponentCapture');
             }
         }
     }
@@ -511,13 +570,8 @@ class TournamentManager {
                 </div>
             `;
             
-            // Replace buttons with continue button and return to ladder button
+            // CHANGE: Replace buttons with only the "Return to Tournament Ladder" button
             winModalButtons.innerHTML = `
-                <button id="tournament-continue-btn" class="large-btn">
-                    ${isLastOpponent 
-                        ? 'Claim Your Championship Trophy' 
-                        : 'Continue to Next Opponent'}
-                </button>
                 <button id="tournament-ladder-btn" class="large-btn">
                     Return to Tournament Ladder
                 </button>
@@ -526,31 +580,6 @@ class TournamentManager {
             // Show win modal (might be hidden in tournament mode)
             winModal.classList.remove('hidden');
             
-            // Add event listener to continue button
-            const continueBtn = document.getElementById('tournament-continue-btn');
-            if (continueBtn) {
-                continueBtn.addEventListener('click', () => {
-                    // Hide win modal
-                    winModal.classList.add('hidden');
-                    
-                    // Advance to next opponent
-                    const hasNextOpponent = this.advanceToNextOpponent();
-                    
-                    if (!hasNextOpponent) {
-                        // Tournament complete
-                        this.showTournamentComplete();
-                    } else {
-                        // Return to tournament ladder
-                        this.showTournamentScreen();
-                    }
-                });
-                
-                // Set focus to the continue button for keyboard accessibility
-                setTimeout(() => {
-                    continueBtn.focus();
-                }, 100);
-            }
-            
             // Add event listener to ladder button
             const ladderBtn = document.getElementById('tournament-ladder-btn');
             if (ladderBtn) {
@@ -558,9 +587,29 @@ class TournamentManager {
                     // Hide win modal
                     winModal.classList.add('hidden');
                     
-                    // Return to tournament ladder without advancing
-                    this.showTournamentScreen();
+                    // Mark current opponent as defeated
+                    if (this.currentOpponentIndex < this.opponents.length) {
+                        this.opponents[this.currentOpponentIndex].defeated = true;
+                        this.saveProgress();
+                    }
+                    
+                    // Check if that was the last opponent
+                    if (this.currentOpponentIndex === this.opponents.length - 1) {
+                        this.tournamentCompleted = true;
+                        this.saveProgress();
+                        this.showTournamentComplete();
+                    } else {
+                        // Advance to next opponent
+                        this.advanceToNextOpponent();
+                        // Return to tournament ladder
+                        this.showTournamentScreen();
+                    }
                 });
+                
+                // Set focus to the button for keyboard accessibility
+                setTimeout(() => {
+                    ladderBtn.focus();
+                }, 100);
             }
         } else {
             // Fallback if modal elements not found
@@ -725,6 +774,35 @@ class TournamentManager {
         
         // Update ladder display
         this.renderLadder();
+        
+        // After rendering, scroll to the current opponent
+        setTimeout(() => this.scrollToCurrentOpponent(), 100);
+    }
+    
+    /**
+     * Scroll to current opponent in the ladder
+     */
+    scrollToCurrentOpponent() {
+        const ladderElement = document.getElementById('tournament-ladder');
+        const currentOpponentElement = ladderElement.querySelector('.ladder-opponent.current');
+        
+        if (ladderElement && currentOpponentElement) {
+            // Calculate scroll position to center the current opponent
+            const ladderRect = ladderElement.getBoundingClientRect();
+            const opponentRect = currentOpponentElement.getBoundingClientRect();
+            
+            // Calculate how far down the current opponent is from the top of the ladder
+            const offsetTop = opponentRect.top - ladderRect.top;
+            
+            // Calculate how far to scroll to center the current opponent
+            const scrollTop = offsetTop - (ladderRect.height / 2) + (opponentRect.height / 2);
+            
+            // Smooth scroll to that position
+            ladderElement.scrollTo({
+                top: scrollTop + ladderElement.scrollTop,
+                behavior: 'smooth'
+            });
+        }
     }
     
     /**
@@ -763,27 +841,19 @@ class TournamentManager {
         
         ladderElement.innerHTML = '';
         
-        // Add progress indicator at the top
-        const progressElement = document.createElement('div');
-        progressElement.className = 'tournament-progress';
+        // Update the fixed progress bar instead of adding it to the ladder
+        this.updateFixedProgressBar();
         
-        // Calculate progress 
-        const defeatedCount = this.opponents.filter(o => o.defeated).length;
-        const totalOpponents = this.opponents.length;
+        // Create an array of opponents to reverse
+        const opponentsToRender = [...this.opponents];
         
-        progressElement.innerHTML = `
-            <div class="progress-text">
-                <span>Progress: ${defeatedCount} / ${totalOpponents} opponents defeated</span>
-            </div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: ${(defeatedCount / totalOpponents) * 100}%"></div>
-            </div>
-        `;
-        
-        ladderElement.appendChild(progressElement);
+        // Reverse the array to show high-difficulty opponents at the top
+        opponentsToRender.reverse();
         
         // Add all opponents to ladder
-        this.opponents.forEach((opponent, index) => {
+        opponentsToRender.forEach((opponent) => {
+            // Find the original index of this opponent
+            const index = this.opponents.findIndex(o => o.id === opponent.id);
             const opponentElement = document.createElement('div');
             opponentElement.className = 'ladder-opponent';
             
@@ -792,14 +862,22 @@ class TournamentManager {
                 opponentElement.classList.add('defeated');
             }
             
+            // Change: Make current opponent have blue background like buttons
             if (index === this.currentOpponentIndex && !opponent.defeated) {
                 opponentElement.classList.add('current');
+                opponentElement.style.backgroundColor = '#4A6FA5'; // Blue background like buttons
                 
                 // Update the button text for the current opponent
                 const startMatchBtn = document.getElementById('start-match-btn');
                 if (startMatchBtn) {
                     startMatchBtn.textContent = `Challenge ${opponent.name}`;
                 }
+                
+                // Make the current opponent clickable
+                opponentElement.style.cursor = 'pointer';
+                opponentElement.addEventListener('click', () => {
+                    this.startMatch();
+                });
             }
             
             // Check if this is the current opponent and not defeated

@@ -53,11 +53,17 @@ function setupMainMenuListeners() {
         console.error("Missing element: tournament-mode-btn");
     }
     
-    // Tutorial mode button
+    // Tutorial mode button - Updated to launch the tutorial directly
     const tutorialModeBtn = document.getElementById('tutorial-mode-btn');
     if (tutorialModeBtn) {
         tutorialModeBtn.addEventListener('click', () => {
-            alert("Tutorial mode will be available in a future update.");
+            // Start tutorial directly (function defined in tutorial-service.js)
+            if (typeof window.startTutorial === 'function') {
+                window.startTutorial();
+            } else {
+                console.error("Tutorial service not loaded");
+                alert("Tutorial mode will be available in a future update.");
+            }
         });
     } else {
         console.error("Missing element: tutorial-mode-btn");
@@ -274,11 +280,11 @@ function showTournamentScreen() {
     if (tournamentScreen) {
         tournamentScreen.classList.remove('hidden');
         if (tournamentManager) {
-            tournamentManager.renderLadder();
+            tournamentManager.renderLadder();           
+            setTimeout(() => tournamentManager.scrollToCurrentOpponent(), 100);
         }
     }
 }
-
 /**
  * Show tournament settings with reset function
  */

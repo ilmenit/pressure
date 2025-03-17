@@ -21,17 +21,30 @@
     overflow: hidden; /* Prevent double scrollbars */
 }
 
+/* Tournament Progress - Fixed at top */
+#tournament-progress-fixed {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #222;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
 .tournament-ladder {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    margin: 20px 0;
+    margin: 0;
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden; /* Prevent horizontal scrolling */
     padding: 10px;
     background-color: #1E1E1E;
     border-radius: 8px;
+    max-height: calc(100vh - 270px); /* Adjusted to account for fixed progress bar */
 }
 
 .ladder-opponent {
@@ -48,12 +61,18 @@
     box-sizing: border-box;
 }
 
-/* FIXED: Changed current opponent styling to use border instead of blue background */
+/* Styling for current opponent with blue background */
 .ladder-opponent.current {
-    background-color: #33373D; /* Darker gray instead of blue */
+    background-color: #4A6FA5 !important; /* Blue background like buttons */
     border: 2px solid #FFD700; /* Gold border */
     transform: scale(1.02); /* Reduced scale to prevent overflow */
     box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); /* Gold glow */
+    cursor: pointer;
+}
+
+/* Hover effect for current opponent */
+.ladder-opponent.current:hover {
+    background-color: #3A5A80 !important; /* Slightly darker blue on hover */
 }
 
 .ladder-opponent.defeated {
@@ -67,7 +86,7 @@
     margin-right: 10px;
 }
 
-/* FIXED: Increased player portrait size to match opponent */
+/* Fixed: Increased player portrait size to match opponent */
 .player-mini-portrait {
     width: 80px; /* Changed from 40px to 80px to match opponent portrait */
     height: 80px; /* Changed from 40px to 80px to match opponent portrait */
@@ -83,7 +102,7 @@
     object-fit: cover;
 }
 
-/* FIXED: Improved VS indicator positioning */
+/* Fixed: Improved VS indicator positioning */
 .vs-indicator {
     margin: 0 15px; /* Increased horizontal margin */
     color: #FFD700;
@@ -137,7 +156,7 @@
     font-size: 0.9rem;
 }
 
-/* FIXED: Changed status badge to use a different color than buttons */
+/* Fixed: Changed status badge to use a different color than buttons */
 .opponent-status {
     position: absolute;
     right: 15px;
@@ -172,7 +191,7 @@
     overflow: hidden;
 }
 
-/* FIXED: Changed progress fill color to be different from buttons */
+/* Fixed: Changed progress fill color to be different from buttons */
 .progress-fill {
     height: 100%;
     background-color: #FFD700; /* Gold color for progress */
@@ -468,13 +487,13 @@
         font-size: 1rem;
     }
     
-    /* FIXED: Updated player mini portrait size for responsive views */
+    /* Fixed: Updated player mini portrait size for responsive views */
     .player-mini-portrait {
         width: 60px;
         height: 60px;
     }
     
-    /* FIXED: Adjusted VS indicator for responsive layout */
+    /* Fixed: Adjusted VS indicator for responsive layout */
     .vs-indicator {
         margin: 0 10px;
         height: 25px;
@@ -552,13 +571,13 @@
         box-sizing: border-box;
     }
     
-    /* FIXED: Updated player mini portrait size for very small screens */
+    /* Fixed: Updated player mini portrait size for very small screens */
     .player-mini-portrait {
         width: 50px;
         height: 50px;
     }
     
-    /* FIXED: Adjusted VS indicator for very small screens */
+    /* Fixed: Adjusted VS indicator for very small screens */
     .vs-indicator {
         margin: 0 5px;
         height: 20px;

@@ -219,6 +219,9 @@ class UIDragHandler {
      * Clean up after dragging ends
      */
     endDragOperation() {
+        const inTutorialMode = window.tutorialService && window.tutorialService.isActive;
+        const draggedPos = this.draggedTokenPos;
+        
         // Reset dragging state
         this.isDragging = false;
         
@@ -228,9 +231,9 @@ class UIDragHandler {
         }
         
         // Remove dragging class from original token
-        if (this.draggedTokenPos) {
+        if (draggedPos) {
             const cell = this.board.boardElement.querySelector(
-                `.cell[data-row="${this.draggedTokenPos.row}"][data-col="${this.draggedTokenPos.col}"]`
+                `.cell[data-row="${draggedPos.row}"][data-col="${draggedPos.col}"]`
             );
             if (cell) {
                 const tokenElement = cell.querySelector('.token');
@@ -240,7 +243,7 @@ class UIDragHandler {
             }
         }
         
-        // Clear selected position and valid drop targets
+        // Clear dragged position
         this.draggedTokenPos = null;
         
         // Remove valid-drop-target class from all cells
@@ -248,7 +251,15 @@ class UIDragHandler {
             cell.classList.remove('valid-drop-target');
         });
         
-        // Clear selection and reset status if no move was made
+        // Special handling for tutorial mode - if it's just a click (not a real drag), 
+        // maintain selection for tutorial
+        if (inTutorialMode && !this.mouseWasMoved) {
+            // In tutorial mode, we'll leave the selection intact for clicks
+            // This enables the tutorial to work correctly
+            return;
+        }
+        
+        // If we're not in tutorial mode or this was a real drag, clear selection normally
         this.uiManager.clearSelection();
     }
 }
