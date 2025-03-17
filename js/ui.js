@@ -417,6 +417,14 @@ class UIManager {
         const modalTitle = document.getElementById('win-modal-title');
         const modalMessage = document.getElementById('win-modal-message');
         const modal = document.getElementById('win-modal');
+        const undoButton = document.getElementById('win-modal-undo');
+        
+        // FIX: Hide undo button in tournament mode
+        if (this.game.isTournamentMode && undoButton) {
+            undoButton.style.display = 'none';
+        } else if (undoButton) {
+            undoButton.style.display = 'inline-block';
+        }
         
         const winnerName = winner.charAt(0).toUpperCase() + winner.slice(1);
         modalTitle.textContent = `${winnerName} Wins!`;
@@ -637,6 +645,13 @@ class UIManager {
     updateGameState() {
         // If the game is over, show result
         if (!this.game.isGameActive && this.game.winner) {
+            // FIX: Check for tournament mode before showing the standard win modal
+            if (this.game.isTournamentMode && this.game.tournamentManager) {
+                // Let tournament manager handle the victory UI
+                // Don't show the standard win modal
+                return;
+            }
+            
             this.showWinModal(this.game.winner, this.game.winReason);
             return;
         }

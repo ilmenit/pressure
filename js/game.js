@@ -20,7 +20,7 @@ class Game {
         // AI move processing flag
         this.isProcessingAIMove = false;
         
-        // FIXED: Add tournament mode flags
+        // Tournament mode flags
         this.isTournamentMode = false;
         this.currentOpponent = null;
         
@@ -58,7 +58,7 @@ class Game {
         // Set AI strength
         this.ai.setStrength(this.currentPlayer === 'black' ? this.blackAILevel : this.whiteAILevel);
         
-        // FIXED: Update UI for undo/redo buttons based on tournament mode
+        // Update UI for undo/redo buttons based on tournament mode
         if (this.ui) {
             this.ui.updateUndoRedoButtons();
         }
@@ -119,7 +119,7 @@ class Game {
      * Undo the last move
      */
     undoMove() {
-        // FIXED: Add check for tournament mode
+        // Don't allow undo in tournament mode
         if (this.isTournamentMode || !this.gameState.canUndo() || this.isProcessingAIMove) return false;
         
         // Use gameState to undo the move
@@ -168,7 +168,7 @@ class Game {
      * Redo a previously undone move
      */
     redoMove() {
-        // FIXED: Add check for tournament mode
+        // Don't allow redo in tournament mode
         if (this.isTournamentMode || !this.gameState.canRedo() || this.isProcessingAIMove) return false;
         
         // Use gameState to redo the move
@@ -195,7 +195,10 @@ class Game {
             
             // Show win modal if game is not active and there is a winner
             if (!this.isGameActive && this.winner && this.ui) {
-                this.ui.showWinModal(this.winner, this.winReason);
+                // FIX: Check for tournament mode before showing win modal
+                if (!this.isTournamentMode) {
+                    this.ui.showWinModal(this.winner, this.winReason);
+                }
             }
             
             // Update the UI
@@ -309,6 +312,9 @@ class Game {
         this.isGameActive = false;
         this.winner = winner;
         this.winReason = reason;
+        
+        // Tournament manager notification is now handled in game-extension.js
+        // This prevents the race condition between endGame and showing the win modal
     }
 }
 

@@ -273,7 +273,9 @@ class TournamentManager {
      */
     advanceToNextOpponent() {
         // Mark current opponent as defeated
-        this.opponents[this.currentOpponentIndex].defeated = true;
+        if (this.currentOpponentIndex < this.opponents.length) {
+            this.opponents[this.currentOpponentIndex].defeated = true;
+        }
         
         // Move to next opponent
         if (this.currentOpponentIndex < this.opponents.length - 1) {
@@ -352,6 +354,18 @@ class TournamentManager {
         const tournamentScreen = document.getElementById('tournament-screen');
         if (tournamentScreen) {
             tournamentScreen.classList.add('hidden');
+        }
+        
+        // Hide the retry button if it's visible
+        const retryBtn = document.getElementById('tournament-retry-btn');
+        if (retryBtn) {
+            retryBtn.classList.add('hidden');
+        }
+        
+        // Make sure win modal is hidden
+        const winModal = document.getElementById('win-modal');
+        if (winModal) {
+            winModal.classList.add('hidden');
         }
         
         // Set game to tournament mode
@@ -538,10 +552,35 @@ class TournamentManager {
      * Handle match outcome
      */
     handleMatchOutcome(winner) {
+        // FIXED: In tournament mode, white is always the player and black is always the AI
         const isPlayerWin = winner === 'white';
         
+        // Hide any existing retry button first to avoid double display
+        const retryBtn = document.getElementById('tournament-retry-btn');
+        if (retryBtn) {
+            retryBtn.classList.add('hidden');
+        }
+        
         // Show appropriate commentary
-        this.displayCommentary(isPlayerWin ? 'lose' : 'win');
+        // If player won, show opponent's lose quotes
+        // If player lost, show opponent's win quotes
+        if (isPlayerWin) {
+            this.displayCommentary('lose'); // Opponent's lose quotes
+        } else {
+            this.displayCommentary('win');  // Opponent's win quotes
+        }
+        
+        // FIX: Clear any existing win modal elements handlers to prevent issues
+        const existingContinueBtn = document.getElementById('tournament-continue-btn');
+        const existingLadderBtn = document.getElementById('tournament-ladder-btn');
+        if (existingContinueBtn) {
+            const newBtn = existingContinueBtn.cloneNode(true);
+            existingContinueBtn.parentNode.replaceChild(newBtn, existingContinueBtn);
+        }
+        if (existingLadderBtn) {
+            const newBtn = existingLadderBtn.cloneNode(true);
+            existingLadderBtn.parentNode.replaceChild(newBtn, existingLadderBtn);
+        }
         
         // If player won
         if (isPlayerWin) {
@@ -588,6 +627,9 @@ class TournamentManager {
                         Return to Tournament Ladder
                     </button>
                 `;
+                
+                // Show win modal (might be hidden in tournament mode)
+                winModal.classList.remove('hidden');
                 
                 // Add event listener to continue button
                 const continueBtn = document.getElementById('tournament-continue-btn');
@@ -641,17 +683,21 @@ class TournamentManager {
             }
         } else {
             // Player lost - show retry button
-            setTimeout(() => {
-                const retryBtn = document.getElementById('tournament-retry-btn');
-                if (retryBtn) {
+            // Make sure any existing retry button is hidden first
+            if (retryBtn) {
+                // First reset by hiding it
+                retryBtn.classList.add('hidden');
+                
+                // Then show it after a short delay
+                setTimeout(() => {
                     retryBtn.classList.remove('hidden');
                     
                     // Set focus to retry button for keyboard accessibility
                     setTimeout(() => {
                         retryBtn.focus();
                     }, 100);
-                }
-            }, 2000);
+                }, 2000);
+            }
         }
     }
     

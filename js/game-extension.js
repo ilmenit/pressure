@@ -32,11 +32,8 @@
         // Call the original method
         const result = originalCheckWinConditions.call(this, capturedTokens);
         
-        // Add tournament-specific behavior if game is over
-        if (!this.isGameActive && this.winner && this.isTournamentMode && this.tournamentManager) {
-            // Notify tournament manager about game outcome
-            this.tournamentManager.handleMatchOutcome(this.winner);
-        }
+        // We don't need to call tournament manager here, as it will be called in endGame
+        // This prevents race conditions with the win modal
         
         return result;
     };
@@ -48,6 +45,13 @@
     Game.prototype.endGame = function(winner, reason) {
         // Call the original method
         originalEndGame.call(this, winner, reason);
+        
+        // FIX: Now notify tournament manager AFTER the game state is updated
+        // but BEFORE the UI shows any win modal
+        if (this.isTournamentMode && this.tournamentManager) {
+            // Notify tournament manager about game outcome
+            this.tournamentManager.handleMatchOutcome(this.winner);
+        }
     };
     
     // Add new method for token capture notification
