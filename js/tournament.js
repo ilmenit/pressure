@@ -8,6 +8,9 @@ class TournamentManager {
         this.opponents = [];
         this.currentOpponentIndex = 0;
         this.tournamentCompleted = false;
+        // Track player color in tournament mode
+        this.playerColor = null;
+        this.aiColor = null;
         this.initialize();
     }
 
@@ -85,7 +88,7 @@ class TournamentManager {
                 id: 5, 
                 name: "Taxman Zorg", 
                 image: "alien_accountant.webp", 
-                difficulty: 2, 
+                difficulty: 1, 
                 defeated: false,
                 quotes: {
                     start: ["Time to audit your strategy!", "You owe me a game-winning move!", "Prepare for intergalactic taxation!"],
@@ -155,7 +158,7 @@ class TournamentManager {
                 id: 10, 
                 name: "Chrono Tail", 
                 image: "time_travelling_raccoon.webp", 
-                difficulty: 3, 
+                difficulty: 2, 
                 defeated: false,
                 quotes: {
                     start: ["I've seen the future... and I win!", "Time waits for no one, but I can!", "Let's rewrite history—my way!"],
@@ -372,10 +375,22 @@ class TournamentManager {
         this.game.isTournamentMode = true;
         this.game.currentOpponent = opponent;
         
-        // Initialize game with player as white, AI as black
-        this.game.initialize('human', 'ai', 0, opponent.difficulty);
+        // FIXED: Randomly assign player colors
+        const playerIsWhite = Math.random() >= 0.5;
+        this.playerColor = playerIsWhite ? 'white' : 'black';
+        this.aiColor = playerIsWhite ? 'black' : 'white';
         
-        // FIXED: Hide undo/redo buttons in tournament mode
+        // Initialize game with random color assignment
+        // Remember: initialize(blackPlayerType, whitePlayerType, blackAILevel, whiteAILevel)
+        if (playerIsWhite) {
+            // Player is white, AI is black
+            this.game.initialize('ai', 'human', opponent.difficulty, 0);
+        } else {
+            // Player is black, AI is white
+            this.game.initialize('human', 'ai', 0, opponent.difficulty);
+        }
+        
+        // Hide undo/redo buttons in tournament mode
         if (this.game.ui) {
             this.game.ui.updateUndoRedoButtons();
         }
@@ -408,6 +423,7 @@ class TournamentManager {
                 <div class="opponent-difficulty">
                     ${'★'.repeat(opponent.difficulty)}${'☆'.repeat(3 - opponent.difficulty)}
                 </div>
+                <div class="opponent-color">Playing as ${this.aiColor.toUpperCase()}</div>
             `;
         }
         
@@ -429,7 +445,10 @@ class TournamentManager {
             
             const playerInfo = document.createElement('div');
             playerInfo.id = 'player-info';
-            playerInfo.innerHTML = '<div class="player-name">You</div>';
+            playerInfo.innerHTML = `
+                <div class="player-name">You</div>
+                <div class="player-color">Playing as ${this.playerColor.toUpperCase()}</div>
+            `;
             
             playerDisplay.appendChild(playerPortrait);
             playerDisplay.appendChild(playerInfo);
@@ -441,6 +460,19 @@ class TournamentManager {
             }
         } else {
             playerDisplay.classList.remove('hidden');
+            // Update player color info
+            const playerColorInfo = playerDisplay.querySelector('.player-color');
+            if (playerColorInfo) {
+                playerColorInfo.textContent = `Playing as ${this.playerColor.toUpperCase()}`;
+            } else {
+                const playerInfo = playerDisplay.querySelector('#player-info');
+                if (playerInfo) {
+                    const colorDiv = document.createElement('div');
+                    colorDiv.className = 'player-color';
+                    colorDiv.textContent = `Playing as ${this.playerColor.toUpperCase()}`;
+                    playerInfo.appendChild(colorDiv);
+                }
+            }
         }
         
         // Show start commentary
@@ -537,12 +569,12 @@ class TournamentManager {
             // Update last capture time
             this.captureCounter.lastCaptureTime = now;
             
-            // If player's token was captured (white is player, black is opponent)
-            if (tokenColor === 'white') {
+            // If player's token was captured
+            if (tokenColor === this.playerColor) {
                 this.displayCommentary('opponentCapture');
             } 
             // If opponent's token was captured
-            else if (tokenColor === 'black') {
+            else if (tokenColor === this.aiColor) {
                 this.displayCommentary('capture');
             }
         }
@@ -552,22 +584,14 @@ class TournamentManager {
      * Handle match outcome
      */
     handleMatchOutcome(winner) {
-        // FIXED: In tournament mode, white is always the player and black is always the AI
-        const isPlayerWin = winner === 'white';
-        
-        // Hide any existing retry button first to avoid double display
-        const retryBtn = document.getElementById('tournament-retry-btn');
-        if (retryBtn) {
-            retryBtn.classList.add('hidden');
-        }
+        // Check if player has won based on stored player color
+        const isPlayerWin = winner === this.playerColor;
         
         // Show appropriate commentary
-        // If player won, show opponent's lose quotes
-        // If player lost, show opponent's win quotes
         if (isPlayerWin) {
-            this.displayCommentary('lose'); // Opponent's lose quotes
+            this.displayCommentary('lose');  // Opponent lost
         } else {
-            this.displayCommentary('win');  // Opponent's win quotes
+            this.displayCommentary('win');   // Opponent won
         }
         
         // FIX: Clear any existing win modal elements handlers to prevent issues
@@ -683,12 +707,9 @@ class TournamentManager {
             }
         } else {
             // Player lost - show retry button
-            // Make sure any existing retry button is hidden first
+            const retryBtn = document.getElementById('tournament-retry-btn');
             if (retryBtn) {
-                // First reset by hiding it
-                retryBtn.classList.add('hidden');
-                
-                // Then show it after a short delay
+                // Show it after a short delay
                 setTimeout(() => {
                     retryBtn.classList.remove('hidden');
                     

@@ -17,7 +17,7 @@
         if (this.isTournamentMode && this.currentOpponent) {
             // For tournament mode, we might want to add specific behaviors here
             
-            // FIXED: Ensure UI is updated to disable undo/redo buttons
+            // Ensure UI is updated to disable undo/redo buttons
             if (this.ui) {
                 this.ui.updateUndoRedoButtons();
             }
@@ -46,7 +46,7 @@
         // Call the original method
         originalEndGame.call(this, winner, reason);
         
-        // FIX: Now notify tournament manager AFTER the game state is updated
+        // Now notify tournament manager AFTER the game state is updated
         // but BEFORE the UI shows any win modal
         if (this.isTournamentMode && this.tournamentManager) {
             // Notify tournament manager about game outcome
