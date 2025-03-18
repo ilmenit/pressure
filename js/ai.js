@@ -1,15 +1,49 @@
 /**
  * AI Player with optimized move/undo system
+ * Refactored to use event-driven architecture
  */
 class AIPlayer {
-    constructor(board, moveManager, gameState) {
+    constructor(board, moveManager, gameState, game) {
         this.board = board;
         this.moveManager = moveManager;
         this.gameState = gameState;
+        this.game = game;
+        this.events = game ? game.events : null;
         this.difficulty = 5; // Default difficulty (1-9 scale)
         this.nodesEvaluated = 0;
         this.isThinking = false;
         this.thinkingStartTime = 0;
+        
+        // Set up event listeners
+        if (this.events) {
+            this.setupEventListeners();
+        }
+    }
+
+    /**
+     * Set up event listeners for AI-related events
+     */
+    setupEventListeners() {
+        // Listen for turn changes
+        this.events.on('turn:changed', (data) => {
+            if (data.isAI && !this.isThinking) {
+                // AI turn is now handled by the Game class, this is just for monitoring
+                this.isThinking = true;
+                this.thinkingStartTime = performance.now();
+            }
+        });
+        
+        // Listen for AI move completion
+        this.events.on('ai:moveExecuted', () => {
+            this.isThinking = false;
+            const thinkingTime = performance.now() - this.thinkingStartTime;
+            
+            if (this.game.events) {
+                this.game.events.emit('ai:thinkingCompleted', {
+                    duration: thinkingTime
+                });
+            }
+        });
     }
 
     /**
@@ -17,6 +51,13 @@ class AIPlayer {
      */
     setStrength(difficulty) {
         this.difficulty = Math.max(1, Math.min(9, difficulty));
+        
+        // Emit event for difficulty change
+        if (this.events) {
+            this.events.emit('ai:difficultySet', {
+                level: this.difficulty
+            });
+        }
     }
 
     /**
@@ -29,6 +70,14 @@ class AIPlayer {
         // Start thinking timer
         this.isThinking = true;
         this.thinkingStartTime = performance.now();
+        
+        // Emit AI thinking started event
+        if (this.events) {
+            this.events.emit('ai:thinkingStarted', {
+                color: color,
+                difficulty: this.difficulty
+            });
+        }
         
         // Initial progress notification
         if (progressCallback) {
@@ -56,6 +105,14 @@ class AIPlayer {
             }
             console.timeEnd('AI thinking time');
             this.isThinking = false;
+            
+            // Emit AI thinking completed event
+            if (this.events) {
+                this.events.emit('ai:noMovesFound', {
+                    color: color
+                });
+            }
+            
             return null;
         }
         
@@ -70,6 +127,15 @@ class AIPlayer {
             }
             console.timeEnd('AI thinking time');
             this.isThinking = false;
+            
+            // Emit AI thinking completed event
+            if (this.events) {
+                this.events.emit('ai:singleMoveFound', {
+                    color: color,
+                    move: possibleMoves[0]
+                });
+            }
+            
             return possibleMoves[0];
         }
         
@@ -90,6 +156,14 @@ class AIPlayer {
                 type: 'depth',
                 depth: searchDepth,
                 message: `AI analyzing at depth ${searchDepth}...`
+            });
+        }
+        
+        // Emit AI search depth event
+        if (this.events) {
+            this.events.emit('ai:searchDepthSet', {
+                depth: searchDepth,
+                movesCount: movesToConsider.length
             });
         }
         
@@ -128,6 +202,15 @@ class AIPlayer {
                         type: 'progress',
                         percent: progress,
                         message: `AI analyzing moves: ${progress}%`
+                    });
+                }
+                
+                // Emit AI progress event
+                if (this.events) {
+                    this.events.emit('ai:evaluationProgress', {
+                        progress: progress,
+                        completed: completedMoves,
+                        total: movesToConsider.length
                     });
                 }
             }
@@ -194,6 +277,18 @@ class AIPlayer {
         }
         
         this.isThinking = false;
+        
+        // Emit AI move selected event
+        if (this.events) {
+            this.events.emit('ai:moveEvaluated', {
+                color: color,
+                move: selectedMove,
+                evaluatedMoves: evaluatedMoves.length,
+                nodesEvaluated: this.nodesEvaluated,
+                thinkingTime: performance.now() - this.thinkingStartTime
+            });
+        }
+        
         return selectedMove;
     }
     

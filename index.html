@@ -535,19 +535,31 @@
         </div>
     </div>
 
-	<script src="js/board.js"></script>
-	<script src="js/moves.js"></script>
-	<script src="js/gamestate.js"></script>
-	<script src="js/ai.js"></script>
-	<script src="js/tutorial-service.js"></script>
-	<script src="js/tournament-opponents.js"></script>
-	<script src="js/tournament-manager.js"></script>
-	<script src="js/ui-status-manager.js"></script>
-	<script src="js/ui-drag-handler.js"></script>
-	<script src="js/ui-manager.js"></script>
-	<script src="js/game.js"></script>
-	<script src="js/game-extension.js"></script>
-	<script src="js/tournament-service.js"></script>
-	<script src="js/index.js"></script>	
+    <!-- Event System must be loaded first as other scripts depend on it -->
+    <script src="js/event-system.js"></script>
+    
+    <!-- Load core game components -->
+    <script src="js/board.js"></script>
+    <script src="js/moves.js"></script>
+    <script src="js/gamestate.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/game.js"></script>
+    
+    <!-- UI components -->
+    <script src="js/ui-status-manager.js"></script>
+    <script src="js/ui-drag-handler.js"></script>
+    <script src="js/ui-manager.js"></script>
+    
+    <!-- Tournament components -->
+    <script src="js/tournament-opponents.js"></script>
+    <script src="js/tournament-manager.js"></script>
+    <script src="js/tournament-service.js"></script>
+    
+    <!-- Extensions -->
+    <script src="js/game-extension.js"></script>
+    <script src="js/tutorial-service.js"></script>
+    
+    <!-- Main entry point - must be loaded last -->
+    <script src="js/index.js"></script>
 </body>
 </html>

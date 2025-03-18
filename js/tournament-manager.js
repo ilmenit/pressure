@@ -1,10 +1,12 @@
 /**
  * Tournament Manager for Pressure game
  * Handles tournament progression and character interactions
+ * Refactored to use event-driven architecture
  */
 class TournamentManager {
     constructor(game) {
         this.game = game;
+        this.events = game ? game.events : null;
         this.opponents = [];
         this.currentOpponentIndex = 0;
         this.tournamentCompleted = false;
@@ -13,6 +15,42 @@ class TournamentManager {
         this.aiColor = null;
         
         this.initialize();
+        
+        // Set up event listeners
+        if (this.events) {
+            this.setupEventListeners();
+        }
+    }
+
+    /**
+     * Set up event listeners for tournament-related events
+     */
+    setupEventListeners() {
+        // Listen for token captures
+        this.events.on('token:captured', (data) => {
+            if (this.game.isTournamentMode) {
+                this.handleTokenCapture(data.color);
+            }
+        });
+        
+        // Listen for game ending
+        this.events.on('game:over', (data) => {
+            if (this.game.isTournamentMode) {
+                // This is a backup to the direct call in game-extension.js
+                // Prevents race conditions
+                setTimeout(() => {
+                    if (!this.matchOutcomeHandled) {
+                        this.handleMatchOutcome(data.winner);
+                    }
+                }, 100);
+            }
+        });
+        
+        // Listen for tournament game initialized
+        this.events.on('tournament:gameInitialized', () => {
+            // Reset match outcome handling flag
+            this.matchOutcomeHandled = false;
+        });
     }
 
     /**
@@ -22,6 +60,29 @@ class TournamentManager {
         this.loadOpponents();
         this.loadProgress();
         this.setupEventListeners();
+        
+        // Emit tournament:initialized event
+        if (this.events) {
+            this.events.emit('tournament:initialized', {
+                currentOpponent: this.getCurrentOpponent(),
+                progress: this.getProgress()
+            });
+        }
+    }
+
+    /**
+     * Get tournament progress information
+     */
+    getProgress() {
+        const defeatedCount = this.opponents.filter(o => o.defeated).length;
+        const totalOpponents = this.opponents.length;
+        
+        return {
+            defeatedCount,
+            totalOpponents,
+            percentage: (defeatedCount / totalOpponents) * 100,
+            currentIndex: this.currentOpponentIndex
+        };
     }
 
     /**
@@ -30,6 +91,13 @@ class TournamentManager {
     loadOpponents() {
         // Load opponents from the TournamentOpponents class
         this.opponents = TournamentOpponents.getOpponents();
+        
+        // Emit opponents:loaded event
+        if (this.events) {
+            this.events.emit('opponents:loaded', {
+                count: this.opponents.length
+            });
+        }
     }
     
     /**
@@ -56,6 +124,15 @@ class TournamentManager {
                         if (opponent) {
                             opponent.defeated = true;
                         }
+                    });
+                }
+                
+                // Emit progress:loaded event
+                if (this.events) {
+                    this.events.emit('progress:loaded', {
+                        currentOpponentIndex: this.currentOpponentIndex,
+                        tournamentCompleted: this.tournamentCompleted,
+                        defeatedCount: data.defeatedOpponents ? data.defeatedOpponents.length : 0
                     });
                 }
             }
@@ -87,6 +164,15 @@ class TournamentManager {
             };
             
             localStorage.setItem('pressure_tournament', JSON.stringify(data));
+            
+            // Emit progress:saved event
+            if (this.events) {
+                this.events.emit('progress:saved', {
+                    currentOpponentIndex: this.currentOpponentIndex,
+                    tournamentCompleted: this.tournamentCompleted,
+                    defeatedCount: defeatedOpponents.length
+                });
+            }
         } catch (e) {
             console.error("Error saving tournament progress:", e);
         }
@@ -107,6 +193,13 @@ class TournamentManager {
             } catch (e) {
                 console.error("Error removing tournament progress from localStorage:", e);
             }
+        }
+        
+        // Emit progress:reset event
+        if (this.events) {
+            this.events.emit('progress:reset', {
+                timestamp: Date.now()
+            });
         }
     }
     
@@ -131,11 +224,30 @@ class TournamentManager {
         if (this.currentOpponentIndex < this.opponents.length - 1) {
             this.currentOpponentIndex++;
             this.saveProgress();
+            
+            // Emit opponent:advanced event
+            if (this.events) {
+                this.events.emit('opponent:advanced', {
+                    previousIndex: this.currentOpponentIndex - 1,
+                    currentIndex: this.currentOpponentIndex,
+                    currentOpponent: this.getCurrentOpponent()
+                });
+            }
+            
             return true;
         } else {
             // Tournament completed
             this.tournamentCompleted = true;
             this.saveProgress();
+            
+            // Emit tournament:completed event
+            if (this.events) {
+                this.events.emit('tournament:completed', {
+                    timestamp: Date.now(),
+                    opponentsDefeated: this.opponents.length
+                });
+            }
+            
             return false;
         }
     }
@@ -166,6 +278,13 @@ class TournamentManager {
             retryBtn.addEventListener('click', () => {
                 retryBtn.classList.add('hidden');
                 this.startMatch();
+                
+                // Emit match:retried event
+                if (this.events) {
+                    this.events.emit('match:retried', {
+                        opponent: this.getCurrentOpponent()
+                    });
+                }
             });
         }
         
@@ -218,6 +337,13 @@ class TournamentManager {
                 
                 // Insert before the first child (which should be the ladder)
                 tournamentContainer.insertBefore(progressElement, tournamentContainer.firstChild);
+                
+                // Emit progress:created event
+                if (this.events) {
+                    this.events.emit('progress:created', {
+                        element: 'tournament-progress-fixed'
+                    });
+                }
             }
         }
     }
@@ -241,6 +367,15 @@ class TournamentManager {
                 <div class="progress-fill" style="width: ${(defeatedCount / totalOpponents) * 100}%"></div>
             </div>
         `;
+        
+        // Emit progress:updated event
+        if (this.events) {
+            this.events.emit('progress:updated', {
+                defeatedCount,
+                totalOpponents,
+                percentage: (defeatedCount / totalOpponents) * 100
+            });
+        }
     }
     
     /**
@@ -280,6 +415,9 @@ class TournamentManager {
         this.playerColor = playerIsWhite ? 'white' : 'black';
         this.aiColor = playerIsWhite ? 'black' : 'white';
         
+        // Reset match outcome handling flag
+        this.matchOutcomeHandled = false;
+        
         // Initialize game with random color assignment
         // Remember: initialize(blackPlayerType, whitePlayerType, blackAILevel, whiteAILevel)
         if (playerIsWhite) {
@@ -308,6 +446,16 @@ class TournamentManager {
         const gameScreen = document.getElementById('game-screen');
         if (gameScreen) {
             gameScreen.classList.remove('hidden');
+        }
+        
+        // Emit match:started event
+        if (this.events) {
+            this.events.emit('match:started', {
+                opponent: opponent,
+                playerColor: this.playerColor,
+                aiColor: this.aiColor,
+                difficulty: opponent.difficulty
+            });
         }
     }
     
@@ -344,6 +492,14 @@ class TournamentManager {
                 </div>
                 <div class="opponent-color">Playing as ${this.aiColor.toUpperCase()}</div>
             `;
+            
+            // Emit opponentDisplay:shown event
+            if (this.events) {
+                this.events.emit('opponentDisplay:shown', {
+                    opponent: opponent,
+                    aiColor: this.aiColor
+                });
+            }
         }
     }
     
@@ -381,6 +537,13 @@ class TournamentManager {
             if (gameScreen) {
                 gameScreen.appendChild(playerDisplay);
             }
+            
+            // Emit playerDisplay:created event
+            if (this.events) {
+                this.events.emit('playerDisplay:created', {
+                    playerColor: this.playerColor
+                });
+            }
         } else {
             playerDisplay.classList.remove('hidden');
             // Update player color info
@@ -395,6 +558,13 @@ class TournamentManager {
                     colorDiv.textContent = `Playing as ${this.playerColor.toUpperCase()}`;
                     playerInfo.appendChild(colorDiv);
                 }
+            }
+            
+            // Emit playerDisplay:updated event
+            if (this.events) {
+                this.events.emit('playerDisplay:updated', {
+                    playerColor: this.playerColor
+                });
             }
         }
     }
@@ -441,6 +611,15 @@ class TournamentManager {
             setTimeout(() => {
                 commentaryBox.classList.remove('active');
             }, 3000);
+            
+            // Emit commentary:displayed event
+            if (this.events) {
+                this.events.emit('commentary:displayed', {
+                    type: type,
+                    quote: quote,
+                    opponent: opponent.name
+                });
+            }
         }
     }
     
@@ -485,17 +664,29 @@ class TournamentManager {
             // Update last capture time
             this.captureCounter.lastCaptureTime = now;
             
-            // FIXED: Swap the dialog types to match their correct meanings
-            
             // If AI's token was captured - show "capture" dialog
             // This is what the opponent says when their token is captured
             if (tokenColor === this.aiColor) {
                 this.displayCommentary('capture');
+                
+                // Emit capture:ai event
+                if (this.events) {
+                    this.events.emit('capture:ai', {
+                        time: now
+                    });
+                }
             } 
             // If player's token was captured - show "opponentCapture" dialog
             // This is what the opponent says when they capture the player's token
             else if (tokenColor === this.playerColor) {
                 this.displayCommentary('opponentCapture');
+                
+                // Emit capture:player event
+                if (this.events) {
+                    this.events.emit('capture:player', {
+                        time: now
+                    });
+                }
             }
         }
     }
@@ -504,6 +695,10 @@ class TournamentManager {
      * Handle match outcome
      */
     handleMatchOutcome(winner) {
+        // Set flag to prevent duplicate handling if event comes from multiple sources
+        if (this.matchOutcomeHandled) return;
+        this.matchOutcomeHandled = true;
+        
         // Check if player has won based on stored player color
         const isPlayerWin = winner === this.playerColor;
         
@@ -524,6 +719,15 @@ class TournamentManager {
         if (existingLadderBtn) {
             const newBtn = existingLadderBtn.cloneNode(true);
             existingLadderBtn.parentNode.replaceChild(newBtn, existingLadderBtn);
+        }
+        
+        // Emit match:ended event
+        if (this.events) {
+            this.events.emit('match:ended', {
+                winner: winner,
+                isPlayerWin: isPlayerWin,
+                opponent: this.getCurrentOpponent().name
+            });
         }
         
         // If player won
@@ -598,11 +802,27 @@ class TournamentManager {
                         this.tournamentCompleted = true;
                         this.saveProgress();
                         this.showTournamentComplete();
+                        
+                        // Emit tournament:completed event
+                        if (this.events) {
+                            this.events.emit('tournament:completed', {
+                                timestamp: Date.now(),
+                                totalOpponents: this.opponents.length
+                            });
+                        }
                     } else {
                         // Advance to next opponent
                         this.advanceToNextOpponent();
                         // Return to tournament ladder
                         this.showTournamentScreen();
+                        
+                        // Emit victory:confirmed event
+                        if (this.events) {
+                            this.events.emit('victory:confirmed', {
+                                previousOpponent: currentOpponent.name,
+                                currentOpponent: this.getCurrentOpponent().name
+                            });
+                        }
                     }
                 });
                 
@@ -610,6 +830,14 @@ class TournamentManager {
                 setTimeout(() => {
                     ladderBtn.focus();
                 }, 100);
+            }
+            
+            // Emit victory:modalShown event
+            if (this.events) {
+                this.events.emit('victory:modalShown', {
+                    opponent: currentOpponent.name,
+                    isLastOpponent: isLastOpponent
+                });
             }
         } else {
             // Fallback if modal elements not found
@@ -642,6 +870,13 @@ class TournamentManager {
                 setTimeout(() => {
                     retryBtn.focus();
                 }, 100);
+                
+                // Emit defeat:retryShown event
+                if (this.events) {
+                    this.events.emit('defeat:retryShown', {
+                        opponent: this.getCurrentOpponent().name
+                    });
+                }
             }, 2000);
         }
     }
@@ -692,6 +927,13 @@ class TournamentManager {
             
             // Play celebration animation/sound
             this.celebrateTournamentVictory();
+            
+            // Emit complete:shown event
+            if (this.events) {
+                this.events.emit('complete:shown', {
+                    totalOpponents: this.opponents.length
+                });
+            }
         }
     }
     
@@ -729,6 +971,13 @@ class TournamentManager {
                     }
                 }, 5000);
             }, i * 50); // Staggered creation for better effect
+        }
+        
+        // Emit celebration:started event
+        if (this.events) {
+            this.events.emit('celebration:started', {
+                timestamp: Date.now()
+            });
         }
     }
     
@@ -777,6 +1026,13 @@ class TournamentManager {
         
         // After rendering, scroll to the current opponent
         setTimeout(() => this.scrollToCurrentOpponent(), 100);
+        
+        // Emit ladder:shown event
+        if (this.events) {
+            this.events.emit('ladder:shown', {
+                currentOpponentIndex: this.currentOpponentIndex
+            });
+        }
     }
     
     /**
@@ -802,6 +1058,14 @@ class TournamentManager {
                 top: scrollTop + ladderElement.scrollTop,
                 behavior: 'smooth'
             });
+            
+            // Emit scroll:opponent event
+            if (this.events) {
+                this.events.emit('scroll:opponent', {
+                    opponent: this.getCurrentOpponent().name,
+                    scrollPosition: scrollTop + ladderElement.scrollTop
+                });
+            }
         }
     }
     
@@ -826,6 +1090,13 @@ class TournamentManager {
                     firstButton.focus();
                 }, 100);
             }
+        }
+        
+        // Emit menu:shown event
+        if (this.events) {
+            this.events.emit('menu:shown', {
+                from: 'tournament'
+            });
         }
     }
     
@@ -877,6 +1148,13 @@ class TournamentManager {
                 opponentElement.style.cursor = 'pointer';
                 opponentElement.addEventListener('click', () => {
                     this.startMatch();
+                    
+                    // Emit opponent:clicked event
+                    if (this.events) {
+                        this.events.emit('opponent:clicked', {
+                            opponent: opponent.name
+                        });
+                    }
                 });
             }
             
@@ -939,5 +1217,13 @@ class TournamentManager {
             
             ladderElement.appendChild(opponentElement);
         });
+        
+        // Emit ladder:rendered event
+        if (this.events) {
+            this.events.emit('ladder:rendered', {
+                opponentsCount: this.opponents.length,
+                defeatedCount: this.opponents.filter(o => o.defeated).length
+            });
+        }
     }
 }

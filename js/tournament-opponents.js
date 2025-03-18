@@ -1,6 +1,7 @@
 /**
  * Tournament Opponents
  * Contains all opponent definitions for the tournament mode
+ * Refactored to use event-driven architecture
  */
 class TournamentOpponents {
     /**
@@ -8,7 +9,11 @@ class TournamentOpponents {
      * @returns {Array} Array of opponent objects
      */
     static getOpponents() {
-        return [
+        // Get event system if available
+        const events = window.gameEvents || null;
+        
+        // Define opponents
+        const opponents = [
             { 
                 id: 1, 
                 name: "Captain Thumper", 
@@ -164,5 +169,34 @@ class TournamentOpponents {
                 }
             }
         ];
+        
+        // Emit opponents:loaded event 
+        if (events) {
+            events.emit('opponents:defined', {
+                count: opponents.length
+            });
+        }
+        
+        return opponents;
+    }
+    
+    /**
+     * Get a specific opponent by ID
+     * @param {number} id - The opponent ID to find
+     * @returns {Object|null} - The opponent object or null if not found
+     */
+    static getOpponentById(id) {
+        const opponents = this.getOpponents();
+        return opponents.find(opponent => opponent.id === id) || null;
+    }
+    
+    /**
+     * Get opponents filtered by difficulty level
+     * @param {number} difficulty - The difficulty level to filter by
+     * @returns {Array} - Array of opponents with the specified difficulty
+     */
+    static getOpponentsByDifficulty(difficulty) {
+        const opponents = this.getOpponents();
+        return opponents.filter(opponent => opponent.difficulty === difficulty);
     }
 }

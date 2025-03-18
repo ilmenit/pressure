@@ -1,9 +1,11 @@
 /**
  * UI Manager - Main class that initializes and coordinates UI components
+ * Refactored to use event-driven architecture
  */
 class UIManager {
     constructor(game) {
         this.game = game;
+        this.events = game.events;
         this.board = game.board;
         this.moveManager = game.moveManager;
         this.gameState = game.gameState;
@@ -11,13 +13,94 @@ class UIManager {
         this.selectedTokenPos = null;
         this.possibleMoves = [];
         
-        // Initialize UI components (order matters)
+        // Initialize UI components first
         this.statusManager = new UIStatusManager(this);
         this.dragHandler = new UIDragHandler(this);
         
-        // Setup event listeners for UI components
-        this.setupEventListeners();
+        // Setup win modal after statusManager is initialized
         this.setupWinModal();
+        
+        // Setup UI event listeners after components are initialized
+        this.setupEventListeners();
+        
+        // Setup game event listeners after UI components are ready
+        this.setupGameEventListeners();
+    }
+
+    /**
+     * Set up game event listeners
+     */
+    setupGameEventListeners() {
+        // Listen for game initialization
+        this.events.on('game:initialized', (data) => {
+            // Update UI for current player
+            const currentPlayer = data.currentPlayer.charAt(0).toUpperCase() + data.currentPlayer.slice(1);
+            
+            if ((data.currentPlayer === 'white' && data.whitePlayerType === 'ai') ||
+                (data.currentPlayer === 'black' && data.blackPlayerType === 'ai')) {
+                this.updateStatus(`${currentPlayer} turn. AI is thinking...`, "thinking");
+            } else {
+                this.updateStatus(`${currentPlayer} turn. Select piece to move.`);
+            }
+            
+            // Update draggable tokens
+            this.makeTokensDraggable();
+        });
+        
+        // Listen for turn changes
+        this.events.on('turn:changed', (data) => {
+            if (!data.isAI) {
+                const currentPlayer = data.player.charAt(0).toUpperCase() + data.player.slice(1);
+                this.updateStatus(`${currentPlayer} turn. Select piece to move.`);
+                this.makeTokensDraggable();
+            }
+        });
+        
+        // Listen for AI thinking
+        this.events.on('ai:thinking', (data) => {
+            const currentPlayer = data.player.charAt(0).toUpperCase() + data.player.slice(1);
+            this.updateStatus(`${currentPlayer} turn. AI is thinking...`, "thinking");
+        });
+        
+        // Listen for AI progress
+        this.events.on('ai:progress', (progress) => {
+            this.handleAIProgress(progress);
+        });
+        
+        // Listen for AI move selection
+        this.events.on('ai:moveSelected', (data) => {
+            const currentPlayer = data.player.charAt(0).toUpperCase() + data.player.slice(1);
+            this.updateStatus(`${currentPlayer} turn. AI has selected a move.`, "thinking");
+        });
+        
+        // Listen for move execution
+        this.events.on('move:executed', () => {
+            // Clear any selected token
+            this.clearSelection();
+        });
+        
+        // Listen for game over
+        this.events.on('game:over', (data) => {
+            if (!this.game.isTournamentMode) {
+                this.showWinModal(data.winner, data.reason);
+            }
+        });
+        
+        // Listen for board rendered
+        this.events.on('board:rendered', () => {
+            this.makeTokensDraggable();
+        });
+        
+        // Listen for undo/redo
+        this.events.on('undo:completed', () => {
+            this.updateUndoRedoButtons();
+            this.updateGameState();
+        });
+        
+        this.events.on('redo:completed', () => {
+            this.updateUndoRedoButtons();
+            this.updateGameState();
+        });
     }
 
     /**
@@ -124,8 +207,11 @@ class UIManager {
      * Set up the win modal
      */
     setupWinModal() {
-        // The actual implementation is in UIStatusManager
-        this.statusManager.setupWinModal();
+        if (this.statusManager) {
+            this.statusManager.setupWinModal();
+        } else {
+            console.error("Status manager not initialized yet");
+        }
     }
 
     /**
@@ -189,15 +275,13 @@ class UIManager {
         // Update draggable tokens
         this.makeTokensDraggable();
         
-        // Set initial game status based on whether the starting player is AI
-        if ((this.game.currentPlayer === 'white' && this.game.whitePlayerType === 'ai') ||
-            (this.game.currentPlayer === 'black' && this.game.blackPlayerType === 'ai')) {
-            const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
-            this.updateStatus(`${currentPlayer} turn. AI is thinking...`, "thinking");
-        } else {
-            const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
-            this.updateStatus(`${currentPlayer} turn. Select piece to move.`);
-        }
+        // Emit UI event
+        this.events.emit('ui:gameStarted', {
+            blackPlayerType,
+            whitePlayerType,
+            blackAILevel,
+            whiteAILevel
+        });
     }
 
     /**
@@ -206,6 +290,11 @@ class UIManager {
     openMenu() {
         document.getElementById('game-screen').classList.add('hidden');
         document.getElementById('menu-screen').classList.remove('hidden');
+        
+        // Emit UI event
+        this.events.emit('ui:menuOpened', {
+            timestamp: Date.now()
+        });
     }
 
     /**
@@ -214,6 +303,11 @@ class UIManager {
     resumeGame() {
         document.getElementById('menu-screen').classList.add('hidden');
         document.getElementById('game-screen').classList.remove('hidden');
+        
+        // Emit UI event
+        this.events.emit('ui:gameResumed', {
+            timestamp: Date.now()
+        });
     }
 
     /**
@@ -285,6 +379,13 @@ class UIManager {
         // Update status to show piece is selected
         const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
         this.updateStatus(`${currentPlayer} turn. Token selected. Choose destination.`);
+        
+        // Emit UI event
+        this.events.emit('ui:tokenSelected', {
+            position: { row, col },
+            player: this.game.currentPlayer,
+            possibleMoves: this.possibleMoves
+        });
     }
 
     /**
@@ -305,6 +406,11 @@ class UIManager {
             const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
             this.updateStatus(`${currentPlayer} turn. Select piece to move.`);
         }
+        
+        // Emit UI event
+        this.events.emit('ui:selectionCleared', {
+            timestamp: Date.now()
+        });
     }
 
     /**
@@ -352,11 +458,6 @@ class UIManager {
         } else {
             // AI's turn - set initial message, AI component will update it
             this.updateStatus(`${currentPlayer} turn. AI is thinking...`, "thinking");
-            
-            // Use setTimeout to ensure UI updates before AI processing
-            setTimeout(() => {
-                this.game.executeAIMove();
-            }, 100);
         }
     }
 

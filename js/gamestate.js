@@ -1,11 +1,14 @@
 /**
  * GameState class handles unified state management for both regular gameplay and AI simulation
  * Centralizes all state tracking, move application, and undo/redo functionality
+ * Refactored to use event-driven architecture
  */
 class GameState {
-    constructor(board, moveManager) {
+    constructor(board, moveManager, game) {
         this.board = board;
         this.moveManager = moveManager;
+        this.game = game;
+        this.events = game ? game.events : null;
         this.stateHistory = [];
         this.redoStack = [];
     }
@@ -21,6 +24,14 @@ class GameState {
         const skipRendering = options.skipRendering || false;
         const forAISimulation = options.forAISimulation || false;
 
+        // Emit state:saving event before saving state
+        if (!forAISimulation && this.events) {
+            this.events.emit('state:saving', {
+                move: move,
+                color: color
+            });
+        }
+
         if (!forAISimulation) {
             // For regular gameplay, save full state for undo/redo
             this.saveFullState({
@@ -35,6 +46,13 @@ class GameState {
             // Clear redo stack when making a new move
             if (options.clearRedoStack) {
                 this.redoStack = [];
+                
+                // Emit redoStack:cleared event
+                if (this.events) {
+                    this.events.emit('redoStack:cleared', {
+                        timestamp: Date.now()
+                    });
+                }
             }
         } else {
             // For AI simulation, use a more efficient approach that only tracks affected positions
@@ -45,10 +63,26 @@ class GameState {
         // This should only be done at the start of a player's turn, not during move simulation
         if (options.resetActiveStatus) {
             this.board.resetActiveStatus(color);
+            
+            // Emit tokens:activated event
+            if (!forAISimulation && this.events) {
+                this.events.emit('tokens:activated', {
+                    color: color
+                });
+            }
         }
 
         // Execute the move
         const capturedTokens = this.moveManager.executeMove(move, color, skipRendering);
+        
+        // Emit state:applied event after applying move
+        if (!forAISimulation && this.events) {
+            this.events.emit('state:applied', {
+                move: move,
+                color: color,
+                capturedTokens: capturedTokens
+            });
+        }
         
         return capturedTokens;
     }
@@ -58,6 +92,14 @@ class GameState {
      */
     saveFullState(state) {
         this.stateHistory.push(state);
+        
+        // Emit stateHistory:updated event
+        if (this.events) {
+            this.events.emit('stateHistory:updated', {
+                historyLength: this.stateHistory.length,
+                redoLength: this.redoStack.length
+            });
+        }
     }
 
     /**
@@ -171,7 +213,14 @@ class GameState {
      * Handles both full state and minimal state undo
      */
     undoLastMove(options = {}) {
-        if (this.stateHistory.length === 0) return false;
+        if (this.stateHistory.length === 0) return { success: false };
+        
+        // Emit undo:started event
+        if (this.events) {
+            this.events.emit('undo:started', {
+                historyLength: this.stateHistory.length
+            });
+        }
         
         const state = this.stateHistory.pop();
         
@@ -187,6 +236,13 @@ class GameState {
             };
             
             this.redoStack.push(currentState);
+            
+            // Emit redoStack:updated event
+            if (this.events) {
+                this.events.emit('redoStack:updated', {
+                    redoLength: this.redoStack.length
+                });
+            }
         }
         
         // Determine what type of state we're restoring
@@ -201,6 +257,15 @@ class GameState {
                 this.board.lastCapturedTokens = [...state.lastCapturedTokens];
             } else {
                 this.board.lastCapturedTokens = [];
+            }
+            
+            // Emit undo:completed event
+            if (this.events) {
+                this.events.emit('undo:completed', {
+                    historyLength: this.stateHistory.length,
+                    redoLength: this.redoStack.length,
+                    restoredState: state
+                });
             }
             
             // Return additional state for the Game class to handle
@@ -230,6 +295,13 @@ class GameState {
                 this.board.lastMoveTo = {...state.move.to};
             }
             
+            // Emit undo:completed event for AI simulation
+            if (this.events) {
+                this.events.emit('undo:aiSimulation', {
+                    historyLength: this.stateHistory.length
+                });
+            }
+            
             return { success: true };
         }
     }
@@ -238,7 +310,14 @@ class GameState {
      * Redo a previously undone move
      */
     redoMove(options = {}) {
-        if (this.redoStack.length === 0) return false;
+        if (this.redoStack.length === 0) return { success: false };
+        
+        // Emit redo:started event
+        if (this.events) {
+            this.events.emit('redo:started', {
+                redoLength: this.redoStack.length
+            });
+        }
         
         // Save current state for undo
         if (options.saveForUndo) {
@@ -275,6 +354,15 @@ class GameState {
             this.board.lastCapturedTokens = [];
         }
         
+        // Emit redo:completed event
+        if (this.events) {
+            this.events.emit('redo:completed', {
+                historyLength: this.stateHistory.length,
+                redoLength: this.redoStack.length,
+                restoredState: nextState
+            });
+        }
+        
         return { 
             success: true, 
             state: nextState
@@ -301,5 +389,12 @@ class GameState {
     clearHistory() {
         this.stateHistory = [];
         this.redoStack = [];
+        
+        // Emit history:cleared event
+        if (this.events) {
+            this.events.emit('history:cleared', {
+                timestamp: Date.now()
+            });
+        }
     }
 }

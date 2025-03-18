@@ -1,20 +1,34 @@
 /**
  * Tournament Service
  * Handles character image loading and fallbacks
+ * Refactored to use event-driven architecture
  */
  
 document.addEventListener('DOMContentLoaded', () => {
+    // Get event system
+    const events = window.gameEvents || null;
+    
     // Preload character images with fallbacks
     preloadCharacterImages();
     
     // Add tournament initializations if tournament mode is active
     setupTournamentElements();
+    
+    // Emit service:initialized event
+    if (events) {
+        events.emit('tournamentService:initialized', {
+            timestamp: Date.now()
+        });
+    }
 });
 
 /**
  * Preload character images with fallbacks
  */
 function preloadCharacterImages() {
+    // Get event system
+    const events = window.gameEvents || null;
+    
     // Fallback image in case the actual character images are missing
     const fallbackImage = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiM0QTZGQTUiLz48dGV4dCB4PSI1MCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGFsaWdubWVudC1iYXNlbGluZT0ibWlkZGxlIj5DaGFyYWN0ZXI8L3RleHQ+PC9zdmc+';
     
@@ -40,9 +54,32 @@ function preloadCharacterImages() {
     for (const image of characterImages) {
         const img = new Image();
         img.onerror = function() {
-            createFallbackImage(image, fallbackImage);
+            const fallback = createFallbackImage(image, fallbackImage);
+            
+            // Emit image:fallbackCreated event
+            if (events) {
+                events.emit('image:fallbackCreated', {
+                    image: image,
+                    fallback: fallback ? 'created' : 'failed'
+                });
+            }
+        };
+        img.onload = function() {
+            // Emit image:loaded event
+            if (events) {
+                events.emit('image:loaded', {
+                    image: image
+                });
+            }
         };
         img.src = `assets/characters/${image}`;
+    }
+    
+    // Emit images:preloadStarted event
+    if (events) {
+        events.emit('images:preloadStarted', {
+            count: characterImages.length
+        });
     }
 }
 
@@ -51,6 +88,9 @@ function preloadCharacterImages() {
  * Note: Browsers can't create directories, this just logs a warning
  */
 function ensureCharactersDirectory() {
+    // Get event system
+    const events = window.gameEvents || null;
+    
     // In a browser context, we can't create directories
     // This function now just checks for existence and logs warnings
     
@@ -58,9 +98,23 @@ function ensureCharactersDirectory() {
     const testImg = new Image();
     testImg.onerror = function() {
         console.warn('Characters directory may not exist. Character images may not load properly.');
+        
+        // Emit directory:missing event
+        if (events) {
+            events.emit('directory:missing', {
+                path: 'assets/characters'
+            });
+        }
     };
     testImg.onload = function() {
         console.log('Characters directory appears to be accessible');
+        
+        // Emit directory:accessible event
+        if (events) {
+            events.emit('directory:accessible', {
+                path: 'assets/characters'
+            });
+        }
     };
     testImg.src = 'assets/characters/test-access.png';
 }
@@ -69,6 +123,9 @@ function ensureCharactersDirectory() {
  * Create fallback image for missing character images
  */
 function createFallbackImage(imageName, fallbackImage) {
+    // Get event system
+    const events = window.gameEvents || null;
+    
     // If unable to load actual image, create a personalized fallback based on character name
     console.warn(`Character image ${imageName} not found, using fallback`);
     
@@ -94,9 +151,25 @@ function createFallbackImage(imageName, fallbackImage) {
     try {
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem(`char_img_${imageName}`, customFallback);
+            
+            // Emit fallback:stored event
+            if (events) {
+                events.emit('fallback:stored', {
+                    image: imageName,
+                    name: characterName
+                });
+            }
         }
     } catch (e) {
         console.error('Could not save fallback image to localStorage', e);
+        
+        // Emit fallback:storeFailed event
+        if (events) {
+            events.emit('fallback:storeFailed', {
+                image: imageName,
+                error: e.message
+            });
+        }
     }
     
     // Apply to any current images
@@ -109,27 +182,52 @@ function createFallbackImage(imageName, fallbackImage) {
  * Apply fallback image to current images in the DOM
  */
 function applyFallbackToCurrentImages(imageName, fallbackImage) {
+    // Get event system
+    const events = window.gameEvents || null;
+    
     // Find any images currently trying to use this file and replace src
-    document.querySelectorAll(`img[src$="${imageName}"]`).forEach(img => {
+    const images = document.querySelectorAll(`img[src$="${imageName}"]`);
+    images.forEach(img => {
         img.src = fallbackImage;
     });
+    
+    // Emit fallback:applied event
+    if (events && images.length > 0) {
+        events.emit('fallback:applied', {
+            image: imageName,
+            count: images.length
+        });
+    }
 }
 
 /**
  * Setup tournament UI elements with additional behaviors
  */
 function setupTournamentElements() {
+    // Get event system
+    const events = window.gameEvents || null;
+    
     // Handle tournament completion visualization
     setupTournamentCompletion();
     
     // FIXED: Removed opponent selection behavior - no more ladder item selection
     // We no longer call setupLadderInteractions()
+    
+    // Emit elements:setup event
+    if (events) {
+        events.emit('tournamentElements:setup', {
+            timestamp: Date.now()
+        });
+    }
 }
 
 /**
  * Setup tournament completion visualization
  */
 function setupTournamentCompletion() {
+    // Get event system
+    const events = window.gameEvents || null;
+    
     const completionScreen = document.getElementById('tournament-complete-screen');
     if (!completionScreen) return;
     
@@ -140,6 +238,13 @@ function setupTournamentCompletion() {
             // Only trigger when the screen becomes visible
             if (e.propertyName === 'opacity' && !completionScreen.classList.contains('hidden')) {
                 addCompletionEffects(victorySection);
+                
+                // Emit completion:effectsAdded event
+                if (events) {
+                    events.emit('completion:effectsAdded', {
+                        timestamp: Date.now()
+                    });
+                }
             }
         });
     }
@@ -149,6 +254,9 @@ function setupTournamentCompletion() {
  * Add special effects to tournament completion
  */
 function addCompletionEffects(container) {
+    // Get event system
+    const events = window.gameEvents || null;
+    
     if (!container) return;
     
     // Simple confetti animation using DOM elements
@@ -170,6 +278,13 @@ function addCompletionEffects(container) {
                 confetti.parentNode.removeChild(confetti);
             }
         }, 5000);
+    }
+    
+    // Emit confetti:created event
+    if (events) {
+        events.emit('confetti:created', {
+            count: 50
+        });
     }
 }
 

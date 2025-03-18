@@ -1,6 +1,7 @@
 /**
  * Extension for Game class to support tournament mode
  * This file extends the existing Game class rather than modifying it directly
+ * Refactored to use event-driven architecture
  */
 
 // Extend Game class prototype with tournament-specific methods
@@ -20,6 +21,15 @@
             // Ensure UI is updated to disable undo/redo buttons
             if (this.ui) {
                 this.ui.updateUndoRedoButtons();
+            }
+            
+            // Emit tournament:gameInitialized event
+            if (this.events) {
+                this.events.emit('tournament:gameInitialized', {
+                    opponent: this.currentOpponent,
+                    blackPlayerType: blackPlayerType,
+                    whitePlayerType: whitePlayerType
+                });
             }
         }
     };
@@ -49,6 +59,14 @@
         // Now notify tournament manager AFTER the game state is updated
         // but BEFORE the UI shows any win modal
         if (this.isTournamentMode && this.tournamentManager) {
+            // Emit tournament:gameEnded event
+            if (this.events) {
+                this.events.emit('tournament:gameEnded', {
+                    winner: winner,
+                    reason: reason
+                });
+            }
+            
             // Notify tournament manager about game outcome
             this.tournamentManager.handleMatchOutcome(this.winner);
         }
@@ -59,6 +77,13 @@
         // Notify tournament manager if in tournament mode
         if (this.isTournamentMode && this.tournamentManager) {
             this.tournamentManager.handleTokenCapture(tokenColor);
+        }
+        
+        // Emit token:captureNotified event
+        if (this.events) {
+            this.events.emit('token:captureNotified', {
+                color: tokenColor
+            });
         }
     };
     
@@ -93,9 +118,9 @@
         const captured = originalCheckAndTransform.call(this);
         
         // Notify game about captures if game instance is available
-        if (window.game && captured.length > 0) {
+        if (this.game && captured.length > 0) {
             for (const token of captured) {
-                window.game.notifyTokenCaptured(token.color);
+                this.game.notifyTokenCaptured(token.color);
             }
         }
         

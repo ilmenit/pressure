@@ -1,10 +1,50 @@
 /**
  * UI Status Manager handles game status displays and modals
+ * Refactored to use event-driven architecture
  */
 class UIStatusManager {
     constructor(uiManager) {
         this.uiManager = uiManager;
         this.game = uiManager.game;
+        this.events = uiManager.events;
+        
+        // Setup event listeners
+        this.setupEventListeners();
+    }
+
+    /**
+     * Set up event listeners for status-related events
+     */
+    setupEventListeners() {
+        // Listen for token captures
+        this.events.on('token:captured', (data) => {
+            const color = data.color.charAt(0).toUpperCase() + data.color.slice(1);
+            this.updateStatus(`${color} token captured!`, "normal");
+        });
+        
+        // Listen for AI thinking 
+        this.events.on('ai:thinking', (data) => {
+            const player = data.player.charAt(0).toUpperCase() + data.player.slice(1);
+            this.updateStatus(`${player} turn. AI is thinking...`, "thinking");
+        });
+        
+        // Listen for AI move selected
+        this.events.on('ai:moveSelected', (data) => {
+            const player = data.player.charAt(0).toUpperCase() + data.player.slice(1);
+            this.updateStatus(`${player} turn. AI has selected a move.`, "thinking");
+        });
+        
+        // Listen for AI move executed
+        this.events.on('ai:moveExecuted', (data) => {
+            const player = data.player.charAt(0).toUpperCase() + data.player.slice(1);
+            this.updateStatus(`${player} turn. AI has made its move.`, "normal");
+        });
+        
+        // Listen for game over
+        this.events.on('game:over', (data) => {
+            const winner = data.winner.charAt(0).toUpperCase() + data.winner.slice(1);
+            this.updateStatus(`${winner} player won. ${data.reason}`, "error");
+        });
     }
 
     /**
@@ -33,13 +73,21 @@ class UIStatusManager {
             // Add event listeners for the new buttons
             document.getElementById('win-modal-undo').addEventListener('click', () => {
                 document.getElementById('win-modal').classList.add('hidden');
-                this.uiManager.undoMove();
+                if (this.uiManager) this.uiManager.undoMove();
             });
             
             document.getElementById('win-modal-menu').addEventListener('click', () => {
                 document.getElementById('win-modal').classList.add('hidden');
-                this.uiManager.openMenu();
+                if (this.uiManager) this.uiManager.openMenu();
             });
+            
+            // Emit event if possible
+            if (this.events) {
+                this.events.emit('modal:created', {
+                    type: 'winModal',
+                    timestamp: Date.now()
+                });
+            }
         }
     }
 
@@ -67,6 +115,14 @@ class UIStatusManager {
         this.updateStatus(`${winnerName} player won. ${reason}`, "error");
         
         modal.classList.remove('hidden');
+        
+        // Emit UI event
+        if (this.events) {
+            this.events.emit('ui:winModalShown', {
+                winner: winner,
+                reason: reason
+            });
+        }
     }
 
     /**
@@ -125,6 +181,14 @@ class UIStatusManager {
         if (statusElement) {
             statusElement.className = 'game-status';
             statusElement.classList.add(`status-${state}`);
+        }
+        
+        // Emit status:updated event
+        if (this.events) {
+            this.events.emit('status:updated', {
+                text: text,
+                state: state
+            });
         }
     }
 }

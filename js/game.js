@@ -1,13 +1,19 @@
 /**
  * Game class handles the game logic and flow
+ * Refactored to use event-driven architecture
  */
 class Game {
     constructor() {
-        this.board = new Board();
-        this.moveManager = new MoveManager(this.board);
-        this.gameState = new GameState(this.board, this.moveManager);
-        this.ai = new AIPlayer(this.board, this.moveManager, this.gameState);
+        // Use the global event system or create a new one
+        this.events = window.gameEvents || new EventSystem();
         
+        // Initialize components
+        this.board = new Board(this);
+        this.moveManager = new MoveManager(this.board, this);
+        this.gameState = new GameState(this.board, this.moveManager, this);
+        this.ai = new AIPlayer(this.board, this.moveManager, this.gameState, this);
+        
+        // Game state
         this.isGameActive = false;
         this.currentPlayer = 'white'; // White moves first
         this.blackPlayerType = 'human';
@@ -26,6 +32,46 @@ class Game {
         
         // Create UI manager after DOM is loaded
         this.ui = null;
+        
+        // Set up event listeners
+        this.setupEventListeners();
+    }
+
+    /**
+     * Set up event listeners for game events
+     */
+    setupEventListeners() {
+        // Listen for move execution to check win conditions
+        this.events.on('move:executed', (data) => {
+            // Check for win conditions
+            this.checkWinConditions(data.capturedTokens);
+            
+            // Switch turns if game is still active
+            if (this.isGameActive) {
+                this.switchTurn();
+            }
+        });
+        
+        // Also listen for turn changes to trigger AI (redundant but safer)
+        this.events.on('turn:changed', (data) => {
+            if (data.isAI && this.isGameActive && !this.isProcessingAIMove) {
+                setTimeout(() => this.executeAIMove(), 100);
+            }
+        });
+        
+        // Listen for tournament mode changes
+        this.events.on('tournament:gameInitialized', (data) => {
+            // Update tournament-specific settings if needed
+            this.isTournamentMode = true;
+            this.currentOpponent = data.opponent;
+        });
+        
+        // Listen for tournament completion
+        this.events.on('tournament:completed', () => {
+            // Update game state for tournament completion
+            this.isTournamentMode = true;
+            this.tournamentCompleted = true;
+        });
     }
 
     /**
@@ -63,8 +109,26 @@ class Game {
             this.ui.updateUndoRedoButtons();
         }
         
-        // If AI starts, make its move
-        if (this.currentPlayer === 'white' && this.whitePlayerType === 'ai') {
+        // Emit game:initialized event
+        this.events.emit('game:initialized', {
+            currentPlayer: this.currentPlayer,
+            blackPlayerType: this.blackPlayerType,
+            whitePlayerType: this.whitePlayerType,
+            blackAILevel: this.blackAILevel,
+            whiteAILevel: this.whiteAILevel
+        });
+        
+        // Emit initial turn:changed event
+        const isAITurn = (this.currentPlayer === 'white' && this.whitePlayerType === 'ai') ||
+                         (this.currentPlayer === 'black' && this.blackPlayerType === 'ai');
+        
+        this.events.emit('turn:changed', {
+            player: this.currentPlayer,
+            isAI: isAITurn
+        });
+        
+        // If AI starts, make its move directly (in addition to event)
+        if (isAITurn) {
             setTimeout(() => this.executeAIMove(), 100);
         }
     }
@@ -106,13 +170,12 @@ class Game {
             this.ui.updateUndoRedoButtons();
         }
         
-        // Check for win conditions
-        this.checkWinConditions(capturedTokens);
-        
-        // Switch turns if game is still active
-        if (this.isGameActive) {
-            this.switchTurn();
-        }
+        // Emit move:executed event
+        this.events.emit('move:executed', {
+            move: move,
+            player: this.currentPlayer,
+            capturedTokens: capturedTokens
+        });
     }
 
     /**
@@ -121,6 +184,11 @@ class Game {
     undoMove() {
         // Don't allow undo in tournament mode
         if (this.isTournamentMode || !this.gameState.canUndo() || this.isProcessingAIMove) return false;
+        
+        // Emit undo:started event
+        this.events.emit('undo:started', {
+            currentPlayer: this.currentPlayer
+        });
         
         // Use gameState to undo the move
         const result = this.gameState.undoLastMove({
@@ -158,6 +226,12 @@ class Game {
                 this.board.renderBoard(); // Ensure board is rendered with updated state
             }
             
+            // Emit undo:completed event
+            this.events.emit('undo:completed', {
+                currentPlayer: this.currentPlayer,
+                isGameActive: this.isGameActive
+            });
+            
             return true;
         }
         
@@ -170,6 +244,11 @@ class Game {
     redoMove() {
         // Don't allow redo in tournament mode
         if (this.isTournamentMode || !this.gameState.canRedo() || this.isProcessingAIMove) return false;
+        
+        // Emit redo:started event
+        this.events.emit('redo:started', {
+            currentPlayer: this.currentPlayer
+        });
         
         // Use gameState to redo the move
         const result = this.gameState.redoMove({
@@ -195,7 +274,7 @@ class Game {
             
             // Show win modal if game is not active and there is a winner
             if (!this.isGameActive && this.winner && this.ui) {
-                // FIX: Check for tournament mode before showing win modal
+                // Check for tournament mode before showing win modal
                 if (!this.isTournamentMode) {
                     this.ui.showWinModal(this.winner, this.winReason);
                 }
@@ -206,6 +285,12 @@ class Game {
                 this.ui.updateUndoRedoButtons();
                 this.board.renderBoard(); // Ensure board is rendered with updated state
             }
+            
+            // Emit redo:completed event
+            this.events.emit('redo:completed', {
+                currentPlayer: this.currentPlayer,
+                isGameActive: this.isGameActive
+            });
             
             return true;
         }
@@ -226,6 +311,12 @@ class Game {
         const aiLevel = this.currentPlayer === 'black' ? this.blackAILevel : this.whiteAILevel;
         this.ai.setStrength(aiLevel);
         
+        // Emit ai:thinking event
+        this.events.emit('ai:thinking', {
+            player: this.currentPlayer,
+            level: aiLevel
+        });
+        
         // Create a timer to ensure AI has a minimum thinking time for better UX
         // Even if calculation is instant, display thinking for at least 500ms
         const startTime = performance.now();
@@ -233,9 +324,7 @@ class Game {
         
         // Define progress callback for AI to report status to UI
         const progressCallback = (progress) => {
-            if (this.ui) {
-                this.ui.handleAIProgress(progress);
-            }
+            this.events.emit('ai:progress', progress);
         };
         
         // Get best move from AI with progress updates
@@ -244,6 +333,12 @@ class Game {
         // Calculate elapsed time and enforce minimum thinking time for UX
         const elapsedTime = performance.now() - startTime;
         const remainingTime = Math.max(0, MIN_THINKING_TIME - elapsedTime);
+        
+        // Emit ai:moveSelected event
+        this.events.emit('ai:moveSelected', {
+            move: aiMove,
+            player: this.currentPlayer
+        });
         
         // Execute move after minimum thinking time has elapsed
         setTimeout(() => {
@@ -258,10 +353,10 @@ class Game {
             // Clear processing flag
             this.isProcessingAIMove = false;
             
-            // Update game state in UI
-            if (this.ui) {
-                this.ui.updateGameState();
-            }
+            // Emit ai:moveExecuted event
+            this.events.emit('ai:moveExecuted', {
+                player: this.currentPlayer
+            });
         }, remainingTime);
     }
 
@@ -272,13 +367,26 @@ class Game {
         // Switch current player
         this.currentPlayer = this.getOppositeColor(this.currentPlayer);
         
-        // At this point, we do NOT reset active status for all tokens
-        // Inactive tokens should remain inactive for one turn
-        
         // Check if the new current player has any valid moves
         const possibleMoves = this.moveManager.generatePossibleMoves(this.currentPlayer);
         if (possibleMoves.length === 0) {
             this.endGame(this.getOppositeColor(this.currentPlayer), 'No valid moves available');
+            return;
+        }
+        
+        // Determine if it's AI's turn
+        const isAITurn = (this.currentPlayer === 'black' && this.blackPlayerType === 'ai') || 
+                        (this.currentPlayer === 'white' && this.whitePlayerType === 'ai');
+        
+        // Emit turn:changed event
+        this.events.emit('turn:changed', {
+            player: this.currentPlayer,
+            isAI: isAITurn
+        });
+        
+        // Directly trigger AI move if needed (in addition to event)
+        if (isAITurn && this.isGameActive && !this.isProcessingAIMove) {
+            setTimeout(() => this.executeAIMove(), 100);
         }
     }
 
@@ -313,8 +421,22 @@ class Game {
         this.winner = winner;
         this.winReason = reason;
         
-        // Tournament manager notification is now handled in game-extension.js
-        // This prevents the race condition between endGame and showing the win modal
+        // Emit game:over event
+        this.events.emit('game:over', {
+            winner: winner,
+            reason: reason
+        });
+    }
+    
+    /**
+     * Notify about token capture
+     * Legacy method for backward compatibility
+     */
+    notifyTokenCaptured(tokenColor) {
+        // This method now just emits an event for backward compatibility
+        this.events.emit('token:captured', {
+            color: tokenColor
+        });
     }
 }
 

@@ -1,8 +1,12 @@
 /**
  * Board class handles the representation and rendering of the game board
+ * Refactored to use event-driven architecture
  */
 class Board {
-    constructor() {
+    constructor(game) {
+        this.game = game;
+        // Access events either from game or global, consistently with other classes
+        this.events = game && game.events ? game.events : (window.gameEvents || null);
         this.size = 5;
         this.grid = [];
         this.boardElement = document.querySelector('.board');
@@ -20,17 +24,19 @@ class Board {
         this.grid = Array(this.size).fill().map(() => Array(this.size).fill(null));
         
         // Clear any existing board content
-        this.boardElement.innerHTML = '';
-        
-        // Create board cells
-        for (let row = 0; row < this.size; row++) {
-            for (let col = 0; col < this.size; col++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.dataset.row = row;
-                cell.dataset.col = col;
-                
-                this.boardElement.appendChild(cell);
+        if (this.boardElement) {
+            this.boardElement.innerHTML = '';
+            
+            // Create board cells
+            for (let row = 0; row < this.size; row++) {
+                for (let col = 0; col < this.size; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    this.boardElement.appendChild(cell);
+                }
             }
         }
         
@@ -38,6 +44,13 @@ class Board {
         this.lastMoveFrom = null;
         this.lastMoveTo = null;
         this.lastCapturedTokens = [];
+        
+        // Emit board:initialized event
+        if (this.events) {
+            this.events.emit('board:initialized', {
+                size: this.size
+            });
+        }
     }
 
     /**
@@ -91,12 +104,22 @@ class Board {
         });
         
         this.renderBoard();
+        
+        // Emit board:setup event
+        if (this.events) {
+            this.events.emit('board:setup', {
+                blackPositions,
+                whitePositions
+            });
+        }
     }
 
     /**
      * Render the current state of the board
      */
     renderBoard() {
+        if (!this.boardElement) return;
+        
         const cells = this.boardElement.querySelectorAll('.cell');
         
         cells.forEach(cell => {
@@ -138,6 +161,13 @@ class Board {
                 cell.appendChild(indicator);
             }
         });
+        
+        // Emit board:rendered event
+        if (this.events) {
+            this.events.emit('board:rendered', {
+                timestamp: Date.now()
+            });
+        }
     }
 
     /**
@@ -146,6 +176,14 @@ class Board {
     setLastMove(from, to) {
         this.lastMoveFrom = from;
         this.lastMoveTo = to;
+        
+        // Emit lastMove:updated event
+        if (this.events) {
+            this.events.emit('lastMove:updated', {
+                from: from,
+                to: to
+            });
+        }
     }
 
     /**
@@ -163,7 +201,18 @@ class Board {
      */
     setTokenAt(row, col, token) {
         if (row >= 0 && row < this.size && col >= 0 && col < this.size) {
+            const oldToken = this.grid[row][col];
             this.grid[row][col] = token;
+            
+            // Emit token:updated event
+            if (this.events) {
+                this.events.emit('token:updated', {
+                    row: row,
+                    col: col,
+                    oldToken: oldToken,
+                    newToken: token
+                });
+            }
         }
     }
 
@@ -178,11 +227,29 @@ class Board {
             return;
         }
         
+        // Emit token:moving event
+        if (this.events) {
+            this.events.emit('token:moving', {
+                from: { row: fromRow, col: fromCol },
+                to: { row: toRow, col: toCol },
+                token: token
+            });
+        }
+        
         this.setTokenAt(fromRow, fromCol, null);
         this.setTokenAt(toRow, toCol, token);
         
         // Update last move
         this.setLastMove({row: fromRow, col: fromCol}, {row: toRow, col: toCol});
+        
+        // Emit token:moved event
+        if (this.events) {
+            this.events.emit('token:moved', {
+                from: { row: fromRow, col: fromCol },
+                to: { row: toRow, col: toCol },
+                token: token
+            });
+        }
     }
 
     /**
@@ -219,18 +286,32 @@ class Board {
                 const token = this.getTokenAt(row, col);
                 if (token && !token.isCaptured && this.isTokenSurrounded(row, col)) {
                     token.isCaptured = true;
-                    captured.push({ 
+                    
+                    const captureInfo = { 
                         row, 
                         col, 
                         color: token.color
-                    });
+                    };
+                    
+                    captured.push(captureInfo);
                     
                     // Add to the last captured tokens array
-                    this.lastCapturedTokens.push({ 
-                        row, 
-                        col, 
-                        color: token.color
-                    });
+                    this.lastCapturedTokens.push(captureInfo);
+                    
+                    // Emit token:captured event
+                    if (this.events) {
+                        this.events.emit('token:captured', {
+                            row: row,
+                            col: col,
+                            color: token.color,
+                            position: { row, col }
+                        });
+                    }
+                    
+                    // For backward compatibility
+                    if (this.game) {
+                        this.game.notifyTokenCaptured(token.color);
+                    }
                 }
             }
         }
@@ -249,6 +330,13 @@ class Board {
                     token.isActive = true;
                 }
             }
+        }
+        
+        // Emit tokens:activated event
+        if (this.events) {
+            this.events.emit('tokens:activated', {
+                color: color
+            });
         }
     }
 
@@ -316,16 +404,32 @@ class Board {
         }
         
         this.renderBoard();
+        
+        // Emit board:restored event
+        if (this.events) {
+            this.events.emit('board:restored', {
+                timestamp: Date.now()
+            });
+        }
     }
 
     /**
      * Clear all highlights from the board cells
      */
     clearHighlights() {
+        if (!this.boardElement) return;
+        
         const cells = this.boardElement.querySelectorAll('.cell');
         cells.forEach(cell => {
             cell.classList.remove('highlight');
         });
+        
+        // Emit highlights:cleared event
+        if (this.events) {
+            this.events.emit('highlights:cleared', {
+                timestamp: Date.now()
+            });
+        }
     }
 
     /**
@@ -333,6 +437,8 @@ class Board {
      */
     highlightCells(positions) {
         this.clearHighlights();
+        
+        if (!this.boardElement) return;
         
         positions.forEach(pos => {
             const cell = this.boardElement.querySelector(
@@ -342,5 +448,12 @@ class Board {
                 cell.classList.add('highlight');
             }
         });
+        
+        // Emit cells:highlighted event
+        if (this.events) {
+            this.events.emit('cells:highlighted', {
+                positions: positions
+            });
+        }
     }
 }

@@ -1,9 +1,12 @@
 /**
  * MoveManager handles move validation, generation, and execution
+ * Refactored to use event-driven architecture
  */
 class MoveManager {
-    constructor(board) {
+    constructor(board, game) {
         this.board = board;
+        this.game = game;
+        this.events = game && game.events ? game.events : null;
         this.directions = [
             { dr: -1, dc: 0, name: 'up' },    // Up
             { dr: 1, dc: 0, name: 'down' },   // Down
@@ -59,6 +62,14 @@ class MoveManager {
                     });
                 }
             }
+        }
+        
+        // Emit moves:generated event
+        if (this.events) {
+            this.events.emit('moves:generated', {
+                color: color,
+                count: moves.length
+            });
         }
         
         return moves;
@@ -127,15 +138,42 @@ class MoveManager {
     executeMove(move, currentPlayer, skipRendering = false) {
         const oppositeColor = currentPlayer === 'black' ? 'white' : 'black';
         
+        // Emit move:executing event
+        if (this.events) {
+            this.events.emit('move:executing', {
+                move: move,
+                player: currentPlayer
+            });
+        }
+        
         if (move.type === 'move') {
             // Simple move to empty space
             this.board.moveToken(move.from.row, move.from.col, move.to.row, move.to.col);
             
             // Check for surrounded tokens after a simple move
-            this.board.checkAndTransformSurroundedTokens();
+            const capturedTokens = this.board.checkAndTransformSurroundedTokens();
+            
+            // Emit move:simple event
+            if (this.events) {
+                this.events.emit('move:simple', {
+                    from: move.from,
+                    to: move.to,
+                    player: currentPlayer,
+                    capturedTokens: capturedTokens
+                });
+            }
         } else if (move.type === 'push') {
             // Execute push
             this.executePush(move, currentPlayer, oppositeColor);
+            
+            // Emit move:push event
+            if (this.events) {
+                this.events.emit('move:push', {
+                    move: move,
+                    player: currentPlayer,
+                    direction: move.direction
+                });
+            }
         }
         
         // Update the board display only if not in simulation mode
@@ -202,6 +240,14 @@ class MoveManager {
             const token = this.board.getTokenAt(pos.row, pos.col);
             if (token && token.color === oppositeColor && !token.isCaptured) {
                 token.isActive = false;
+                
+                // Emit token:deactivated event
+                if (this.events) {
+                    this.events.emit('token:deactivated', {
+                        position: pos,
+                        color: oppositeColor
+                    });
+                }
             }
         }
     }

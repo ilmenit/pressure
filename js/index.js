@@ -1,19 +1,30 @@
 /**
  * Game entry point - initializes modes and handles switching between them
+ * Refactored to use event-driven architecture
  */
 
 // Store game instance globally for extensions to access
 let game = null;
 let tournamentManager = null;
+let events = null;
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // First, initialize the event system
+    events = window.gameEvents || new EventSystem();
+    window.gameEvents = events; // Ensure global access
+    
+    // Enable debug mode during development if needed
+    // events.setDebug(true);
+    
     // Reference the existing game instance or create new one
     if (window.game) {
         game = window.game;
+        game.events = events; // Ensure game uses our event system
     } else {
         // For first load, initialize as it would have done in game.js
         game = new Game();
+        game.events = events; // Ensure game uses our event system
         game.initUI();
         window.game = game; // Store globally
     }
@@ -25,9 +36,51 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up event listeners for main menu
     setupMainMenuListeners();
     
+    // Set up event listeners for game events
+    setupGameEventListeners();
+    
     // Show main menu immediately
     showMainMenu();
+    
+    // Emit application:initialized event
+    events.emit('application:initialized', {
+        timestamp: Date.now()
+    });
 });
+
+/**
+ * Set up event listeners for game-level events
+ */
+function setupGameEventListeners() {
+    // Only setup if events system exists
+    if (!events) return;
+    
+    // Listen for screen changes
+    events.on('ui:gameStarted', () => {
+        // Hide menu screens, show game screen
+        hideAllScreens();
+        const gameScreen = document.getElementById('game-screen');
+        if (gameScreen) gameScreen.classList.remove('hidden');
+        
+        // Show resume game button for when user returns to menu
+        const resumeGameBtn = document.getElementById('resume-game-btn');
+        if (resumeGameBtn) resumeGameBtn.classList.remove('hidden');
+    });
+    
+    events.on('ui:menuOpened', () => {
+        showMainMenu();
+    });
+    
+    events.on('tournament:completed', () => {
+        // Update tournament complete screen with celebration effects
+        const completeScreen = document.getElementById('tournament-complete-screen');
+        if (completeScreen) {
+            completeScreen.classList.remove('hidden');
+        }
+    });
+    
+    // Other global event listeners can be added here
+}
 
 /**
  * Setup main menu event listeners
@@ -38,6 +91,13 @@ function setupMainMenuListeners() {
     if (standardModeBtn) {
         standardModeBtn.addEventListener('click', () => {
             showStandardSetup();
+            
+            // Emit event
+            if (events) {
+                events.emit('menu:standardSetupOpened', {
+                    timestamp: Date.now()
+                });
+            }
         });
     } else {
         console.error("Missing element: standard-mode-btn");
@@ -48,6 +108,13 @@ function setupMainMenuListeners() {
     if (tournamentModeBtn) {
         tournamentModeBtn.addEventListener('click', () => {
             showTournamentScreen();
+            
+            // Emit event
+            if (events) {
+                events.emit('menu:tournamentOpened', {
+                    timestamp: Date.now()
+                });
+            }
         });
     } else {
         console.error("Missing element: tournament-mode-btn");
@@ -60,6 +127,13 @@ function setupMainMenuListeners() {
             // Start tutorial directly (function defined in tutorial-service.js)
             if (typeof window.startTutorial === 'function') {
                 window.startTutorial();
+                
+                // Emit event
+                if (events) {
+                    events.emit('tutorial:started', {
+                        timestamp: Date.now()
+                    });
+                }
             } else {
                 console.error("Tutorial service not loaded");
                 alert("Tutorial mode will be available in a future update.");
@@ -93,6 +167,13 @@ function setupMainMenuListeners() {
             // Add click handler for tournament settings
             tournamentSettingsBtn.addEventListener('click', () => {
                 showTournamentSettings();
+                
+                // Emit event
+                if (events) {
+                    events.emit('menu:tournamentSettingsOpened', {
+                        timestamp: Date.now()
+                    });
+                }
             });
         }
     }
@@ -135,6 +216,14 @@ function setupMainMenuListeners() {
                     menuScreen.classList.add('hidden');
                 }
                 showMainMenu();
+                
+                // Emit event
+                if (events) {
+                    events.emit('menu:mainMenuOpened', {
+                        from: 'gameScreen',
+                        timestamp: Date.now()
+                    });
+                }
             }, 50);
         };
     }
@@ -158,6 +247,14 @@ function setupMainMenuListeners() {
                     menuScreen.classList.add('hidden');
                 }
                 showMainMenu();
+                
+                // Emit event
+                if (events) {
+                    events.emit('menu:mainMenuOpened', {
+                        from: 'winModal',
+                        timestamp: Date.now()
+                    });
+                }
             }, 50);
         };
     }
@@ -188,6 +285,14 @@ function setupMainMenuListeners() {
                 if (game.ui) {
                     game.ui.updateUndoRedoButtons();
                 }
+                
+                // Emit event
+                if (events) {
+                    events.emit('game:resumed', {
+                        mode: 'standard',
+                        timestamp: Date.now()
+                    });
+                }
             } 
             // If in tournament mode
             else if (game.isTournamentMode) {
@@ -209,6 +314,15 @@ function setupMainMenuListeners() {
                     if (game.ui) {
                         game.ui.updateUndoRedoButtons();
                     }
+                    
+                    // Emit event
+                    if (events) {
+                        events.emit('game:resumed', {
+                            mode: 'tournament',
+                            state: 'active',
+                            timestamp: Date.now()
+                        });
+                    }
                 } 
                 // Otherwise show tournament screen
                 else {
@@ -216,6 +330,13 @@ function setupMainMenuListeners() {
                     if (tournamentScreen) {
                         tournamentScreen.classList.remove('hidden');
                         tournamentManager.renderLadder();
+                        
+                        // Emit event
+                        if (events) {
+                            events.emit('tournament:resumed', {
+                                timestamp: Date.now()
+                            });
+                        }
                     }
                 }
             }
@@ -227,8 +348,38 @@ function setupMainMenuListeners() {
  * Show the main menu
  */
 function showMainMenu() {
+    // First hide ALL screens completely
+    hideAllScreens();
+    
+    // Then show the main menu
+    const mainMenu = document.getElementById('main-menu');
+    if (mainMenu) {
+        // Remove hidden class completely
+        mainMenu.classList.remove('hidden');
+    } else {
+        console.error("Missing main menu element");
+        // Fallback to showing menu-screen if main-menu doesn't exist
+        const menuScreen = document.getElementById('menu-screen');
+        if (menuScreen) {
+            menuScreen.classList.remove('hidden');
+        }
+    }
+    
+    // Emit main menu shown event
+    if (events) {
+        events.emit('screen:mainMenuShown', {
+            timestamp: Date.now()
+        });
+    }
+}
+
+/**
+ * Hide all screens 
+ */
+function hideAllScreens() {
     // Hide all screens - use optional chaining to avoid errors if an element is missing
     const screens = [
+        'main-menu', // Added main-menu to the list to fix visibility issue
         'menu-screen',
         'standard-setup',
         'tournament-screen',
@@ -243,40 +394,33 @@ function showMainMenu() {
             screen.classList.add('hidden');
         }
     });
-    
-    // Show main menu
-    const mainMenu = document.getElementById('main-menu');
-    if (mainMenu) {
-        mainMenu.classList.remove('hidden');
-    } else {
-        console.error("Missing main menu element");
-        // Fallback to showing menu-screen if main-menu doesn't exist
-        const menuScreen = document.getElementById('menu-screen');
-        if (menuScreen) {
-            menuScreen.classList.remove('hidden');
-        }
-    }
 }
 
 /**
  * Show standard game setup
  */
 function showStandardSetup() {
-    const mainMenu = document.getElementById('main-menu');
-    const standardSetup = document.getElementById('standard-setup');
+    hideAllScreens();
     
-    if (mainMenu) mainMenu.classList.add('hidden');
+    const standardSetup = document.getElementById('standard-setup');
     if (standardSetup) standardSetup.classList.remove('hidden');
+    
+    // Emit setup screen shown event
+    if (events) {
+        events.emit('screen:standardSetupShown', {
+            timestamp: Date.now()
+        });
+    }
 }
 
 /**
  * Show tournament screen
  */
 function showTournamentScreen() {
-    const mainMenu = document.getElementById('main-menu');
+    hideAllScreens();
+    
     const tournamentScreen = document.getElementById('tournament-screen');
     
-    if (mainMenu) mainMenu.classList.add('hidden');
     if (tournamentScreen) {
         tournamentScreen.classList.remove('hidden');
         if (tournamentManager) {
@@ -284,16 +428,21 @@ function showTournamentScreen() {
             setTimeout(() => tournamentManager.scrollToCurrentOpponent(), 100);
         }
     }
+    
+    // Emit tournament screen shown event
+    if (events) {
+        events.emit('screen:tournamentShown', {
+            timestamp: Date.now()
+        });
+    }
 }
+
 /**
  * Show tournament settings with reset function
  */
 function showTournamentSettings() {
-    // Hide main menu
-    const mainMenu = document.getElementById('main-menu');
-    if (mainMenu) {
-        mainMenu.classList.add('hidden');
-    }
+    // Hide all screens
+    hideAllScreens();
     
     // Create settings div if it doesn't exist
     let tournamentSettings = document.getElementById('tournament-settings');
@@ -323,6 +472,13 @@ function showTournamentSettings() {
                     if (tournamentManager) {
                         tournamentManager.resetProgress();
                         alert('Tournament progress has been reset.');
+                        
+                        // Emit progress reset event
+                        if (events) {
+                            events.emit('tournament:progressReset', {
+                                timestamp: Date.now()
+                            });
+                        }
                     }
                 }
             });
@@ -335,10 +491,25 @@ function showTournamentSettings() {
                 showMainMenu();
             });
         }
+        
+        // Emit settings created event
+        if (events) {
+            events.emit('settings:created', {
+                element: 'tournament-settings',
+                timestamp: Date.now()
+            });
+        }
     }
     
     // Show settings screen
     tournamentSettings.classList.remove('hidden');
+    
+    // Emit settings shown event
+    if (events) {
+        events.emit('screen:settingsShown', {
+            timestamp: Date.now()
+        });
+    }
 }
 
 /**
@@ -394,10 +565,8 @@ function startStandardGame() {
     }
     
     // Show game screen, hide setup screen
-    const standardSetup = document.getElementById('standard-setup');
+    hideAllScreens();
     const gameScreen = document.getElementById('game-screen');
-    
-    if (standardSetup) standardSetup.classList.add('hidden');
     if (gameScreen) gameScreen.classList.remove('hidden');
     
     // Show resume game button in menu for when user returns
@@ -409,5 +578,16 @@ function startStandardGame() {
     // FIXED: Ensure undo/redo buttons are properly shown
     if (game.ui) {
         game.ui.updateUndoRedoButtons();
+    }
+    
+    // Emit standard game started event
+    if (events) {
+        events.emit('game:standardStarted', {
+            blackPlayerType,
+            whitePlayerType,
+            blackAILevel,
+            whiteAILevel,
+            timestamp: Date.now()
+        });
     }
 }

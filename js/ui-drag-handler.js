@@ -1,10 +1,12 @@
 /**
  * UI Drag Handler manages drag and drop operations for tokens
+ * Refactored to use event-driven architecture
  */
 class UIDragHandler {
     constructor(uiManager) {
         this.uiManager = uiManager;
         this.game = uiManager.game;
+        this.events = uiManager.events;
         this.board = uiManager.board;
         
         // For drag operations
@@ -23,6 +25,22 @@ class UIDragHandler {
             (navigator.msMaxTouchPoints > 0);
         
         this.setupDragEvents();
+        this.setupEventListeners();
+    }
+
+    /**
+     * Set up event listeners for game events
+     */
+    setupEventListeners() {
+        // Listen for board setup
+        this.events.on('board:setup', () => {
+            this.endDragOperation();
+        });
+        
+        // Listen for game initialization
+        this.events.on('game:initialized', () => {
+            this.endDragOperation();
+        });
     }
 
     /**
@@ -108,6 +126,12 @@ class UIDragHandler {
             
             // Generate and highlight valid drop targets
             this.highlightValidDropTargets(row, col);
+            
+            // Emit drag:started event
+            this.events.emit('drag:started', {
+                position: { row, col },
+                token: token
+            });
         }
     }
 
@@ -134,6 +158,12 @@ class UIDragHandler {
         // If moved more than 5px, consider it a genuine drag
         if (distance > 5) {
             this.mouseWasMoved = true;
+            
+            // Emit drag:moving event
+            this.events.emit('drag:moving', {
+                position: { x, y },
+                distance: distance
+            });
         }
         
         // Move ghost element with cursor
@@ -171,6 +201,13 @@ class UIDragHandler {
                     // Find and execute the move
                     const move = this.uiManager.findMoveToPosition(row, col);
                     if (move) {
+                        // Emit drag:dropped event
+                        this.events.emit('drag:dropped', {
+                            from: this.draggedTokenPos,
+                            to: { row, col },
+                            move: move
+                        });
+                        
                         this.uiManager.executeMove(move);
                     }
                 }
@@ -179,6 +216,12 @@ class UIDragHandler {
         
         // Clean up dragging state
         this.endDragOperation();
+        
+        // Emit drag:ended event
+        this.events.emit('drag:ended', {
+            wasMoved: this.mouseWasMoved,
+            dragOccurred: this.dragOccurred
+        });
     }
 
     /**
@@ -213,6 +256,11 @@ class UIDragHandler {
         // Update status to show token is being dragged
         const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
         this.uiManager.updateStatus(`${currentPlayer} turn. Dragging token. Drop on a highlighted cell.`);
+        
+        // Emit targets:highlighted event
+        this.events.emit('dropTargets:highlighted', {
+            targets: this.validDropTargets
+        });
     }
 
     /**
