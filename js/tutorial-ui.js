@@ -326,9 +326,8 @@ class TutorialUIManager {
         this.showInstructions("Tutorial Complete", `
             <div class="tutorial-complete">
                 <div class="tutorial-complete-icon">🏆</div>
-                <p>Congratulations! You've completed the tutorial and now know how to play Pressure.</p>
-                <p>You've learned about movement, pushing, capturing, and the victory conditions.</p>
-                <p>You'll now return to the main menu where you can start a real game or try Tournament Mode!</p>
+                <p>You win the match when opponents has no tokens to move.</p>
+                <p>Try now the Tournament Mode!</p>
             </div>
         `, this.tutorialService.stepManager.getTotalSteps(), this.tutorialService.stepManager.getTotalSteps());
         

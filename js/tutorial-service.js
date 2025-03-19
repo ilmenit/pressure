@@ -1,6 +1,7 @@
 /**
  * tutorial-service.js
  * Core Tutorial Service - Manages the tutorial lifecycle and coordinates components
+ * SIMPLIFIED FIX: Focus on validating moves rather than capture events
  */
 class TutorialService {
     constructor(game) {
@@ -31,9 +32,6 @@ class TutorialService {
         this.uiManager = new TutorialUIManager(this);
         this.stepManager = new TutorialStepManager(this);
         this.eventHandler = new TutorialEventHandler(this);
-        
-        // Track last move validity
-        this.lastMoveWasValid = false;
     }
     
     /**
@@ -55,7 +53,6 @@ class TutorialService {
         this.isActive = true;
         this.currentStepIndex = 0;
         this.state = 'STARTING';
-        this.lastMoveWasValid = false;
         
         // Thoroughly clear all existing board state
         this.clearAllBoardState();
@@ -185,8 +182,8 @@ class TutorialService {
         // Ensure the game stays active throughout the tutorial
         this.game.isGameActive = true;
         
-        // Override executeMove to handle incorrect moves
-        if (this.game.ui && this.originalExecuteMove) {  // Check both conditions
+        // Override executeMove to handle move validation
+        if (this.game.ui && this.originalExecuteMove) {
             this.game.ui.executeMove = (move) => {
                 // If tutorial not active, use original behavior
                 if (!this.isActive) {
@@ -233,23 +230,14 @@ class TutorialService {
                         );
                     }
                     
-                    // Execute the move regardless of validity
+                    // Execute the move
                     this.originalExecuteMove.call(this.game.ui, move);
                     
                     // Clear highlights after any move
                     this.uiManager.clearHighlights();
                     
-                    // Track if the move was valid - important for handling token captures
-                    this.lastMoveWasValid = isValidMove;
-                    
-                    // Mark that a move has been performed, but only if it was valid
-                    // or if we're in the easier steps (1-2)
-                    if (isValidMove || this.currentStepIndex <= 1) {
-                        this.stepManager.movePerformed = true;
-                    }
-                    
                     if (!isValidMove) {
-                        // Show error and Try Again button
+                        // Show error and Try Again button for invalid move
                         const errorMessage = expectedAction.errorMessage || 
                                           `Incorrect move. ${step.instructions}`;
                         
@@ -265,7 +253,10 @@ class TutorialService {
                         return;
                     }
                     
-                    // Valid move - proceed with the tutorial
+                    // Valid move - set movePerformed flag
+                    this.stepManager.movePerformed = true;
+                    
+                    // Update instructions
                     if (expectedAction.nextInstructions) {
                         this.uiManager.showInstructions(
                             step.title,
@@ -275,14 +266,41 @@ class TutorialService {
                         );
                     }
                     
+                    // Show captured tokens if needed
+                    if (step.id === "token-capture" || step.id === "edge-capture" || step.id === "victory-conditions") {
+                        // After a short delay, highlight captured tokens
+                        setTimeout(() => {
+                            this.uiManager.highlightCapturedToken();
+                        }, 500);
+                    }
+                    
+                    // Highlight inactive tokens for push steps
+                    if (step.id === "basic-pushing" || step.id === "multi-token-pushing") {
+                        setTimeout(() => {
+                            this.uiManager.highlightInactiveToken();
+                        }, 500);
+                    }
+                    
                     // Execute any after-completion logic
                     if (expectedAction.onComplete) {
                         expectedAction.onComplete(this);
+                    } else {
+                        // If no completion logic, show continue button after a short delay
+                        setTimeout(() => {
+                            this.uiManager.showContinueButton();
+                        }, 1000);
                     }
                     
-                    // If this completes the step, show continue button
-                    if (expectedAction.completesStep) {
-                        this.uiManager.showContinueButton();
+                    // Advance to next expected action
+                    this.stepManager.expectedActionIndex++;
+                    
+                    // If this was the last step of the tutorial and it was the last action,
+                    // show the tutorial completion screen
+                    if (this.currentStepIndex === this.stepManager.getTotalSteps() - 1 && 
+                        this.stepManager.expectedActionIndex >= step.expectedActions.length) {
+                        setTimeout(() => {
+                            this.showTutorialComplete();
+                        }, 3000);
                     }
                     
                     return;
@@ -474,7 +492,6 @@ class TutorialService {
         // Update state
         this.currentStepIndex = stepIndex;
         this.state = 'WAITING_FOR_ACTION';
-        this.lastMoveWasValid = false;
         
         // Reset expected action index
         this.stepManager.resetExpectedAction();
@@ -619,7 +636,7 @@ class TutorialService {
                     timestamp: Date.now()
                 });
             }
-        }, 5000);
+        }, 8000);
         
         // Emit event
         if (this.events) {
@@ -681,26 +698,12 @@ class TutorialService {
     }
     
     /**
-     * Handle move execution
-     */
-    handleMoveExecuted(data) {
-        if (this.state !== 'WAITING_FOR_ACTION') return;
-        
-        // The actual move handling is now done in the executeMove override
-        // This method remains for event handling compatibility
-    }
-    
-    /**
-     * Handle token capture
+     * Handle token capture - simplified to just pass through to the step manager
+     * We no longer rely on this for tutorial progression
      */
     handleTokenCaptured(data) {
-        if (this.state !== 'WAITING_FOR_ACTION') return;
-        
-        // Only process capture events if the last move was valid or in step 1-2
-        if (this.lastMoveWasValid || this.currentStepIndex <= 1) {
-            this.stepManager.handleTokenCaptured(data);
-        }
-        // Otherwise ignore the capture event since it resulted from an invalid move
+        // We're now handling all tutorial progression from the executeMove override
+        // This method is kept for compatibility with events
     }
 }
 
