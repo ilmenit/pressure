@@ -364,7 +364,7 @@ class TutorialService {
         // Setup board for this step
         this.setupBoardForStep(step);
         
-        // Update UI - removed separate progress indicator, now integrated with title
+        // Update UI with step instructions
         this.uiManager.showInstructions(step.title, step.instructions, stepIndex + 1, totalSteps);
         this.uiManager.hideContinueButton();
         
@@ -550,7 +550,6 @@ class TutorialService {
     handleTokenSelected(data) {
         if (this.state !== 'WAITING_FOR_ACTION') return;
         
-        console.log("Token selected:", data);
         this.stepManager.handleTokenSelected(data);
     }
     
@@ -560,7 +559,6 @@ class TutorialService {
     handleMoveExecuted(data) {
         if (this.state !== 'WAITING_FOR_ACTION') return;
         
-        console.log("Move executed:", data);
         this.stepManager.handleMoveExecuted(data);
     }
     
@@ -570,7 +568,6 @@ class TutorialService {
     handleTokenCaptured(data) {
         if (this.state !== 'WAITING_FOR_ACTION') return;
         
-        console.log("Token captured:", data);
         this.stepManager.handleTokenCaptured(data);
     }
 }

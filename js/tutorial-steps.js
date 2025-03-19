@@ -11,9 +11,11 @@ class TutorialStepManager {
         
         // Current expected action
         this.expectedActionIndex = 0;
-        this.waitingForAction = false;
+        this.stepCompleted = false;
         this.isRetrying = false;
-        this.waitingForContinue = false;
+        
+        // Track if a move has been made
+        this.movePerformed = false;
         
         // Step definitions
         this.steps = this.defineSteps();
@@ -51,9 +53,8 @@ class TutorialStepManager {
                             { row: 1, col: 2 }, { row: 3, col: 2 }, 
                             { row: 2, col: 1 }, { row: 2, col: 3 }
                         ],
-                        nextInstructions: "Great! You can move to any adjacent empty space (up, down, left, or right). Take a moment to understand this movement.",
-                        completesStep: true,
-                        displayDuration: 3000 // Show text for 3 seconds before showing continue button
+                        nextInstructions: "Great! You can move to any adjacent empty space.",
+                        completesStep: true
                     }
                 ]
             },
@@ -65,7 +66,7 @@ class TutorialStepManager {
                 instructions: "In Pressure, players take turns. Make a move with your white token.",
                 boardSetup: [
                     { row: 2, col: 2, color: 'white' },
-                    { row: 1, col: 0, color: 'black' } // Moved from (1,1) to (1,0) to avoid pushing problems
+                    { row: 1, col: 0, color: 'black' }
                 ],
                 initialHighlights: [{ row: 2, col: 2 }],
                 expectedActions: [
@@ -86,35 +87,27 @@ class TutorialStepManager {
                                 // Move it one space down - (2,0)
                                 const moveDestination = { row: 2, col: 0 };
                                 
-                                // Highlight the black token
-                                tutorialService.applyHighlights([blackTokenPos]);
-                                
                                 // After a delay, move it
+                                tutorialService.board.moveToken(
+                                    blackTokenPos.row, 
+                                    blackTokenPos.col, 
+                                    moveDestination.row, 
+                                    moveDestination.col
+                                );
+                                tutorialService.board.renderBoard();
+                                
+                                // Show completion message
                                 setTimeout(() => {
-                                    tutorialService.board.moveToken(
-                                        blackTokenPos.row, 
-                                        blackTokenPos.col, 
-                                        moveDestination.row, 
-                                        moveDestination.col
+                                    tutorialService.uiManager.showInstructions(
+                                        "Taking Turns",
+                                        "Each player moves one token per turn. White always goes first.",
+                                        tutorialService.currentStepIndex + 1,
+                                        tutorialService.stepManager.getTotalSteps()
                                     );
-                                    tutorialService.board.renderBoard();
                                     
-                                    // Show completion message
-                                    setTimeout(() => {
-                                        tutorialService.uiManager.showInstructions(
-                                            "Taking Turns",
-                                            "Each player moves one token per turn. White always goes first. Take a moment to observe this turn sequence.",
-                                            tutorialService.currentStepIndex + 1,
-                                            tutorialService.stepManager.getTotalSteps()
-                                        );
-                                        // Clear all highlights
-                                        tutorialService.uiManager.clearHighlights();
-                                        // Show continue button after a delay to give time to read
-                                        setTimeout(() => {
-                                            tutorialService.uiManager.showContinueButton();
-                                        }, 3000);
-                                    }, 1000);
-                                }, 1500);
+                                    // Show continue button
+                                    tutorialService.uiManager.showContinueButton();
+                                }, 1000);
                             }, 1500);
                         }
                     }
@@ -144,22 +137,13 @@ class TutorialStepManager {
                         validDestinations: [{ row: 2, col: 2 }],
                         validateDirection: 'right', // Validate specific direction
                         errorMessage: "Please push the black token to the right. Try again.",
-                        nextInstructions: "When pushing, the entire connected line moves one space. Notice how it works.",
+                        nextInstructions: "Pushed opponent tokens become inactive for their next turn (marked with red dot).",
                         onComplete: function(tutorialService) {
                             // Highlight the inactive token after push
                             setTimeout(() => {
-                                tutorialService.uiManager.showInstructions(
-                                    "Basic Pushing",
-                                    "Notice that the black token now has a red dot. Pushed opponent tokens become inactive for their next turn. Take some time to observe this.",
-                                    tutorialService.currentStepIndex + 1,
-                                    tutorialService.stepManager.getTotalSteps()
-                                );
                                 tutorialService.uiManager.highlightInactiveToken();
-                                // Show continue button after a delay to give time to read
-                                setTimeout(() => {
-                                    tutorialService.uiManager.showContinueButton();
-                                }, 3000);
-                            }, 1500);
+                                tutorialService.uiManager.showContinueButton();
+                            }, 1000);
                         }
                     }
                 ]
@@ -189,21 +173,12 @@ class TutorialStepManager {
                         validDestinations: [{ row: 2, col: 1 }],
                         validateDirection: 'right', // Validate specific direction
                         errorMessage: "Please push the tokens to the right. Try again.",
-                        nextInstructions: "Good job! You pushed multiple tokens at once. Let's see what happens.",
+                        nextInstructions: "Only opponent tokens become inactive after being pushed. Your own tokens remain active.",
                         onComplete: function(tutorialService) {
                             setTimeout(() => {
-                                tutorialService.uiManager.showInstructions(
-                                    "Multi-Token Pushing",
-                                    "Notice that only the black token became inactive (red dot). Your own tokens remain active when pushed. This is an important strategic point.",
-                                    tutorialService.currentStepIndex + 1,
-                                    tutorialService.stepManager.getTotalSteps()
-                                );
                                 tutorialService.uiManager.highlightInactiveToken();
-                                // Show continue button after a delay to give time to read
-                                setTimeout(() => {
-                                    tutorialService.uiManager.showContinueButton();
-                                }, 3000);
-                            }, 1500);
+                                tutorialService.uiManager.showContinueButton();
+                            }, 1000);
                         }
                     }
                 ]
@@ -226,7 +201,7 @@ class TutorialStepManager {
                     {
                         type: 'select',
                         position: { row: 2, col: 4 },
-                        nextInstructions: "Move to the right of the black token to surround and capture it.",
+                        nextInstructions: "Move to position (2,3) to capture the black token.",
                         highlightPositions: [{ row: 2, col: 3 }]
                     },
                     {
@@ -234,7 +209,7 @@ class TutorialStepManager {
                         validDestinations: [{ row: 2, col: 3 }],
                         validateDirection: 'left', // Validate specific direction
                         errorMessage: "Please move to position (2,3) to complete the capture. Try again.",
-                        nextInstructions: "Excellent! You're about to surround the black token from all four sides."
+                        nextInstructions: "Captured tokens turn blue and cannot be moved directly, but they can still be pushed."
                     },
                     {
                         type: 'capture',
@@ -243,22 +218,11 @@ class TutorialStepManager {
                                   data.position.row === 2 && 
                                   data.position.col === 2;
                         },
-                        nextInstructions: "Captured tokens turn blue and cannot be moved directly, but they can still be pushed.",
+                        nextInstructions: "Capturing all opponent tokens is one way to win the game.",
                         onComplete: function(tutorialService) {
                             setTimeout(() => {
                                 tutorialService.uiManager.highlightCapturedToken();
-                                setTimeout(() => {
-                                    tutorialService.uiManager.showInstructions(
-                                        "Token Capture",
-                                        "Capturing all opponent tokens is one way to win the game. Captured tokens stay captured for the rest of the game.",
-                                        tutorialService.currentStepIndex + 1,
-                                        tutorialService.stepManager.getTotalSteps()
-                                    );
-                                    // Show continue button after a delay to give time to read
-                                    setTimeout(() => {
-                                        tutorialService.uiManager.showContinueButton();
-                                    }, 3000);
-                                }, 1000);
+                                tutorialService.uiManager.showContinueButton();
                             }, 1000);
                         }
                     }
@@ -290,7 +254,7 @@ class TutorialStepManager {
                             return move.to.row === 4 && move.to.col === 2;
                         },
                         errorMessage: "Please move to position (4,2) to complete the edge capture. Try again.",
-                        nextInstructions: "Great move! You're about to capture the black token using the board edge."
+                        nextInstructions: "Using the board edges makes capturing easier - only 3 tokens needed at an edge, and just 2 in a corner!"
                     },
                     {
                         type: 'capture',
@@ -299,68 +263,60 @@ class TutorialStepManager {
                                   data.position.row === 4 && 
                                   data.position.col === 1;
                         },
-                        nextInstructions: "Smart move! Using the board edges makes capturing easier - only 3 tokens needed at an edge, and just 2 in a corner!",
+                        nextInstructions: "You completed an edge capture with fewer tokens!",
                         onComplete: function(tutorialService) {
                             setTimeout(() => {
                                 tutorialService.uiManager.highlightCapturedToken();
-                                // Show continue button after a delay to give time to read
-                                setTimeout(() => {
-                                    tutorialService.uiManager.showContinueButton();
-                                }, 2000);
+                                tutorialService.uiManager.showContinueButton();
                             }, 1000);
                         }
                     }
                 ]
             },
             
-            // Step 7: Victory Conditions
+            // Step 7: Victory Conditions - updated for pushing multiple tokens upward
             {
                 id: "victory-conditions",
                 title: "Victory Conditions",
-                instructions: "The goal is to win by either capturing all opponent tokens or leaving them no valid moves.",
+                instructions: "The goal is to win by capturing all opponent tokens. Try pushing multiple tokens upward to make the final capture.",
                 boardSetup: [
-                    { row: 1, col: 1, color: 'black' },   // Last opponent token
-                    { row: 0, col: 1, color: 'white' },   // Above target
-                    { row: 1, col: 0, color: 'white' },   // Left of target
-                    { row: 2, col: 1, color: 'white' },   // Below target
-                    { row: 1, col: 3, color: 'white' }    // Player's token to move
+                    // New setup for pushing tokens upward
+                    { row: 4, col: 2, color: 'white' },  // Player's token at bottom
+                    { row: 3, col: 2, color: 'white' },  // Token above player
+                    { row: 2, col: 2, color: 'black' },  // Enemy token to capture
+                    { row: 1, col: 2, color: 'white' },  // Above black
+                    { row: 2, col: 1, color: 'white' },  // Left of black
+                    { row: 2, col: 3, color: 'white' },  // Right of black
                 ],
-                initialHighlights: [{ row: 1, col: 3 }],
+                initialHighlights: [{ row: 4, col: 2 }],
                 expectedActions: [
                     {
                         type: 'select',
-                        position: { row: 1, col: 3 },
-                        nextInstructions: "Move to position (1,2) to capture the black token and win the game.",
-                        highlightPositions: [{ row: 1, col: 2 }]
+                        position: { row: 4, col: 2 },
+                        nextInstructions: "Push upward to capture the black token and win the game.",
+                        highlightPositions: [{ row: 3, col: 2 }]
                     },
                     {
                         type: 'move',
                         validateMove: (move) => {
-                            return move.to.row === 1 && move.to.col === 2;
+                            return move.to.row === 3 && move.to.col === 2;
                         },
-                        errorMessage: "Please move to position (1,2) to complete the capture. Try again.",
-                        nextInstructions: "Excellent! You're about to capture the last black token."
+                        validateDirection: 'up',
+                        errorMessage: "Please push upward. Try again.",
+                        nextInstructions: "You pushed multiple tokens to capture the black token!"
                     },
                     {
                         type: 'capture',
                         validateCapture: (data) => {
                             return data.color === 'black';
                         },
-                        nextInstructions: "Congratulations! You've captured all the opponent's tokens and won the game!",
+                        nextInstructions: "Congratulations! You've captured the token and completed the tutorial!",
                         onComplete: function(tutorialService) {
                             setTimeout(() => {
                                 tutorialService.uiManager.highlightCapturedToken();
                                 setTimeout(() => {
-                                    tutorialService.uiManager.showInstructions(
-                                        "Victory Conditions",
-                                        "You've won by capturing all opponent tokens! This is one of the victory conditions in Pressure. You've completed the tutorial!",
-                                        tutorialService.currentStepIndex + 1,
-                                        tutorialService.stepManager.getTotalSteps()
-                                    );
-                                    setTimeout(() => {
-                                        tutorialService.showTutorialComplete();
-                                    }, 3000);
-                                }, 1000);
+                                    tutorialService.showTutorialComplete();
+                                }, 1500);
                             }, 1000);
                         }
                     }
@@ -390,8 +346,8 @@ class TutorialStepManager {
      * Handle token selection
      */
     handleTokenSelected(data) {
-        // Don't allow selecting if we're waiting for continue button
-        if (this.waitingForContinue) return;
+        // Don't allow actions if move has already been performed
+        if (this.movePerformed) return;
         
         const step = this.getStep(this.tutorialService.currentStepIndex);
         if (!step) return;
@@ -442,8 +398,8 @@ class TutorialStepManager {
      * Handle move execution
      */
     handleMoveExecuted(data) {
-        // Don't allow moves if we're waiting for continue button
-        if (this.waitingForContinue) return;
+        // Don't allow additional moves if one has already been performed
+        if (this.movePerformed) return;
         
         const step = this.getStep(this.tutorialService.currentStepIndex);
         if (!step) return;
@@ -454,6 +410,9 @@ class TutorialStepManager {
         if (expectedAction.type !== 'move') {
             return;
         }
+        
+        // Mark that a move has been attempted - this prevents additional moves
+        this.movePerformed = true;
         
         // Validate the move
         let isValidMove = true;
@@ -475,8 +434,11 @@ class TutorialStepManager {
             );
         }
         
+        // Clear all highlights immediately after any move
+        this.tutorialService.uiManager.clearHighlights();
+        
         if (!isValidMove) {
-            // Wrong move - display an error message and reset the step
+            // Wrong move - display an error message
             const errorMessage = expectedAction.errorMessage || `Incorrect move. ${step.instructions}`;
             
             this.tutorialService.uiManager.showInstructions(
@@ -489,14 +451,11 @@ class TutorialStepManager {
             // Show try again button
             this.tutorialService.uiManager.showTryAgainButton();
             
-            // Mark as retrying to avoid further processing
+            // Mark as retrying
             this.isRetrying = true;
             
             return;
         }
-        
-        // Clear all highlights after a valid move
-        this.tutorialService.uiManager.clearHighlights();
         
         // Valid move - update instructions
         if (expectedAction.nextInstructions) {
@@ -508,25 +467,14 @@ class TutorialStepManager {
             );
         }
         
-        // Mark that we're waiting for continue to prevent further moves
-        if (expectedAction.completesStep || expectedAction.onComplete) {
-            this.waitingForContinue = true;
-        }
-        
         // Execute any after-completion logic
         if (expectedAction.onComplete) {
             expectedAction.onComplete(this.tutorialService);
         }
         
-        // If this completes the step, show continue button after delay if specified
+        // If this completes the step, show continue button
         if (expectedAction.completesStep) {
-            if (expectedAction.displayDuration) {
-                setTimeout(() => {
-                    this.tutorialService.uiManager.showContinueButton();
-                }, expectedAction.displayDuration);
-            } else {
-                this.tutorialService.uiManager.showContinueButton();
-            }
+            this.tutorialService.uiManager.showContinueButton();
         } 
         // Otherwise advance to next expected action if not handled by onComplete
         else if (!expectedAction.onComplete) {
@@ -581,9 +529,6 @@ class TutorialStepManager {
             return;
         }
         
-        // Mark that we're waiting for continue to prevent further moves
-        this.waitingForContinue = true;
-        
         // Valid capture - update instructions
         if (expectedAction.nextInstructions) {
             this.tutorialService.uiManager.showInstructions(
@@ -613,9 +558,9 @@ class TutorialStepManager {
      * Reset the current step to try again
      */
     retryCurrentStep() {
-        // Reset the retrying flag
+        // Reset flags
         this.isRetrying = false;
-        this.waitingForContinue = false;
+        this.movePerformed = false;
         
         // Reset to the beginning of the current step
         this.tutorialService.loadStep(this.tutorialService.currentStepIndex);
@@ -627,6 +572,7 @@ class TutorialStepManager {
     resetExpectedAction() {
         this.expectedActionIndex = 0;
         this.isRetrying = false;
-        this.waitingForContinue = false;
+        this.movePerformed = false;
+        this.stepCompleted = false;
     }
 }
