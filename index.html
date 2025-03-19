@@ -64,6 +64,28 @@
         .ai-thinking-indicator {
             display: none !important;
         }
+        
+        /* Menu Icon Styles */
+        .menu-icon {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            border-radius: 50%;
+            background-color: #4A6FA5;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .mode-buttons .large-btn {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding-left: 15px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -71,9 +93,26 @@
     <div id="main-menu" class="screen">
         <h1>Pressure</h1>
         <div class="mode-buttons">
-            <button id="tutorial-mode-btn" class="large-btn">Tutorial</button>
-            <button id="tournament-mode-btn" class="large-btn">Tournament Mode</button>
-            <button id="standard-mode-btn" class="large-btn">One on One Game</button>
+            <button id="tournament-mode-btn" class="large-btn">
+                <div class="menu-icon">🏆</div>
+                <span>Tournament Mode</span>
+            </button>
+            <button id="standard-mode-btn" class="large-btn">
+                <div class="menu-icon">🎭</div>
+                <span>One on One Game</span>
+            </button>
+            <button id="read-rules-btn" class="large-btn">
+                <div class="menu-icon">📖</div>
+                <span>Read Game Rules</span>
+            </button>
+            <button id="tutorial-mode-btn" class="large-btn">
+                <div class="menu-icon">📚</div>
+                <span>Tutorial</span>
+            </button>
+            <button id="tournament-settings-btn" class="large-btn">
+                <div class="menu-icon">⚙️</div>
+                <span>Tournament Settings</span>
+            </button>
         </div>
     </div>
 
@@ -82,7 +121,7 @@
         <h1>Standard Game</h1>
             
         <div class="menu-content">
-            <div class="menu-left">
+            <div class="menu-left centered-menu">
                 <h2>Players</h2>
                 <div class="player-select">
                     <div class="player-control">
@@ -113,18 +152,18 @@
                     <div class="player-control">
                         <span class="player-label">Black Player:</span>
                         <div class="player-options">
-                            <button class="player-type-btn active" data-player="black" data-type="human">Human</button>
-                            <button class="player-type-btn" data-player="black" data-type="ai">AI</button>
+                            <button class="player-type-btn" data-player="black" data-type="human">Human</button>
+                            <button class="player-type-btn active" data-player="black" data-type="ai">AI</button>
                         </div>
-                        <div class="ai-level-container black-ai-levels hidden">
+                        <div class="ai-level-container black-ai-levels">
                             <div class="ai-level-selection">
                                 <span class="ai-level-label">Beginner</span>
                                 <div class="ai-level-buttons">
-                                    <button class="ai-level-btn" data-player="black" data-level="1">1</button>
+                                    <button class="ai-level-btn active" data-player="black" data-level="1">1</button>
                                     <button class="ai-level-btn" data-player="black" data-level="2">2</button>
                                     <button class="ai-level-btn" data-player="black" data-level="3">3</button>
                                     <button class="ai-level-btn" data-player="black" data-level="4">4</button>
-                                    <button class="ai-level-btn active" data-player="black" data-level="5">5</button>
+                                    <button class="ai-level-btn" data-player="black" data-level="5">5</button>
                                     <button class="ai-level-btn" data-player="black" data-level="6">6</button>
                                     <button class="ai-level-btn" data-player="black" data-level="7">7</button>
                                     <button class="ai-level-btn" data-player="black" data-level="8">8</button>
@@ -138,191 +177,6 @@
                     <div class="menu-buttons">
                         <button id="standard-start-game-btn" class="large-btn">Start New Game</button>
                         <button id="standard-back-btn" class="large-btn">Back to Main Menu</button>
-                    </div>
-                </div>
-            </div>
-                
-            <div class="menu-right">
-                <div class="rules-section">
-                    <h2>Game Rules</h2>
-                    <div class="rules-content">
-                        <p class="game-goal">The goal of Pressure is to capture all of your opponent's tokens.</p>
-                        
-                        <h3>Token Types</h3>
-                        <!-- Combined white and black tokens in one row -->
-                        <div class="token-example">
-                            <div class="token-container">
-                                <div class="token-mini white"></div>
-                            </div>
-                            <div class="token-container">
-                                <div class="token-mini black"></div>
-                            </div>
-                            <div class="token-description">Active tokens - can be moved on their owner's turn</div>
-                        </div>
-                        
-                        <!-- Combined inactive tokens in one row -->
-                        <div class="token-example">
-                            <div class="token-container">
-                                <div class="token-mini white inactive"></div>
-                            </div>
-                            <div class="token-container">
-                                <div class="token-mini black inactive"></div>
-                            </div>
-                            <div class="token-description">Inactive tokens - cannot move until next turn, but can be pushed</div>
-                        </div>
-                        
-                        <!-- Captured token -->
-                        <div class="token-example">
-                            <div class="token-container">
-                                <div class="token-mini captured"></div>
-                            </div>
-                            <div class="token-description">Captured token - permanently inactive, but can still be pushed</div>
-                        </div>
-                        
-                        <h3>Core Rules</h3>
-                        
-                        <!-- Movement Rule with Example -->
-                        <p><strong>Movement:</strong> On your turn, move one of your tokens to an adjacent space (up, down, left, or right). You cannot move diagonally or move inactive tokens (marked with red).</p>
-                        
-                        <!-- NEW: Simple Move Example -->
-                        <div class="move-example">
-                            <div class="move-label">Basic Move (without push):</div>
-                            <div class="move-row">
-                                <div class="token-container token-with-arrow">
-                                    <div class="token-mini white"></div>
-                                    <div class="move-direction-arrow">→</div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini empty"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini black"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="move-label">After White Moves Right:</div>
-                            <div class="move-row">
-                                <div class="token-container">
-                                    <div class="token-mini empty"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini white"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini black"></div>
-                                </div>
-                            </div>
-                            <p><small>A token simply moves to an adjacent empty space.</small></p>
-                        </div>
-                        
-                        <!-- Pushing Rule with Example -->
-                        <p><strong>Pushing:</strong> When moving into an occupied space, you are "pushing" the whole connected line of tokens. Pushing is only valid if there is an empty space at the end of the line. Both your own and opponent tokens can be pushed.</p>
-                        
-                        <div class="move-example">
-                            <div class="move-label">Push Move:</div>
-                            <div class="move-row">
-                                <div class="token-container token-with-arrow">
-                                    <div class="token-mini white"></div>
-                                    <div class="move-direction-arrow">→</div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini black"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini white"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini empty"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="move-label">After White Pushes Right:</div>
-                            <div class="move-row">
-                                <div class="token-container">
-                                    <div class="token-mini empty"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini white"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini black inactive"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini white"></div>
-                                </div>
-                            </div>
-                            <p><small>When pushing, the entire connected line moves one space.</small></p>
-                        </div>
-                        
-                        <!-- Inactivity Rule -->
-                        <p><strong>Inactivity:</strong> Any opponent tokens that you push become inactive (marked with red) for their next turn. Your own pushed tokens remain active. Inactive tokens cannot be moved but can still be pushed.</p>
-                        <p><small>Note: In the push example above, the black token becomes inactive (red dot) for black's next turn.</small></p>
-                        
-                        <!-- Capture Rule with Examples -->
-                        <p><strong>Capture:</strong> When a token is surrounded on all four orthogonal sides (by tokens or board edges), it is immediately captured (turned blue). Captured tokens cannot be moved directly but can be pushed. Once captured, tokens remain captured for the rest of the game.</p>
-                        
-                        <!-- Capture examples -->
-                        <div class="capture-example">
-                            <div class="capture-label">Capture by 4 surrounding tokens:</div>
-                            <div class="capture-grid">
-                                <div class="token-container"></div>
-                                <div class="token-container">
-                                    <div class="token-mini black"></div>
-                                </div>
-                                <div class="token-container"></div>
-                                
-                                <div class="token-container">
-                                    <div class="token-mini white"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini white captured"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini black"></div>
-                                </div>
-                                
-                                <div class="token-container"></div>
-                                <div class="token-container">
-                                    <div class="token-mini white"></div>
-                                </div>
-                                <div class="token-container"></div>
-                            </div>
-                            <p><small>When a token is surrounded on all four sides by any combination of tokens, it is immediately captured (turned blue).</small></p>
-                        </div>
-                        
-                        <!-- Fixed: Capture by board edges + tokens (corner capture) -->
-                        <div class="capture-example">
-                            <div class="capture-label">Capture by board edges + tokens (corner capture):</div>
-                            <div class="capture-grid capture-grid-edge">                                
-                                <div class="token-container">
-                                    <div class="token-mini white"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini black captured"></div>
-                                </div>
-                                <div class="token-container">
-                                    <div class="token-mini white"></div>
-                                </div>
-                                
-                                <div class="token-container"></div>
-                                <div class="token-container">
-                                    <div class="token-mini white"></div>
-                                </div>
-                                <div class="token-container"></div>
-                                
-                                <div class="token-container"></div>
-                                <div class="token-container"></div>
-                                <div class="token-container"></div>
-                            </div>
-                            <p><small>A token in the corner can be captured by just 2 tokens because the board edges count as surrounding.</small></p>
-                        </div>
-                        
-                        <h3>Victory Conditions</h3>
-                        <p>The game ends immediately when either:</p>
-                        <ul>
-                            <li>A player captures all of their opponent's tokens</li>
-                            <li>A player has no legal moves on their turn</li>
-                        </ul>
                     </div>
                 </div>
             </div>
@@ -358,6 +212,195 @@
             <p>You have defeated all opponents and become the Pressure Champion!</p>
             <p class="final-stats">You've mastered the game by defeating all 11 unique opponents!</p>
             <button id="tournament-complete-back-btn" class="large-btn">Return to Main Menu</button>
+        </div>
+    </div>
+        
+    <!-- Game Rules Screen -->
+    <div id="rules-screen" class="screen hidden">
+        <h1>Game Rules</h1>
+        <div class="rules-container">
+            <div class="rules-content">
+                <p class="game-goal">The goal of Pressure is to capture all of your opponent's tokens.</p>
+                
+                <h3>Token Types</h3>
+                <!-- Combined white and black tokens in one row -->
+                <div class="token-example">
+                    <div class="token-container">
+                        <div class="token-mini white"></div>
+                    </div>
+                    <div class="token-container">
+                        <div class="token-mini black"></div>
+                    </div>
+                    <div class="token-description">Active tokens - can be moved on their owner's turn</div>
+                </div>
+                
+                <!-- Combined inactive tokens in one row -->
+                <div class="token-example">
+                    <div class="token-container">
+                        <div class="token-mini white inactive"></div>
+                    </div>
+                    <div class="token-container">
+                        <div class="token-mini black inactive"></div>
+                    </div>
+                    <div class="token-description">Inactive tokens - cannot move until next turn, but can be pushed</div>
+                </div>
+                
+                <!-- Captured token -->
+                <div class="token-example">
+                    <div class="token-container">
+                        <div class="token-mini captured"></div>
+                    </div>
+                    <div class="token-description">Captured token - permanently inactive, but can still be pushed</div>
+                </div>
+                
+                <h3>Core Rules</h3>
+                
+                <!-- Movement Rule with Example -->
+                <p><strong>Movement:</strong> On your turn, move one of your tokens to an adjacent space (up, down, left, or right). You cannot move diagonally or move inactive tokens (marked with red).</p>
+                
+                <!-- NEW: Simple Move Example -->
+                <div class="move-example">
+                    <div class="move-label">Basic Move (without push):</div>
+                    <div class="move-row">
+                        <div class="token-container token-with-arrow">
+                            <div class="token-mini white"></div>
+                            <div class="move-direction-arrow">→</div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini empty"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini black"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="move-label">After White Moves Right:</div>
+                    <div class="move-row">
+                        <div class="token-container">
+                            <div class="token-mini empty"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini white"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini black"></div>
+                        </div>
+                    </div>
+                    <p><small>A token simply moves to an adjacent empty space.</small></p>
+                </div>
+                
+                <!-- Pushing Rule with Example -->
+                <p><strong>Pushing:</strong> When moving into an occupied space, you are "pushing" the whole connected line of tokens. Pushing is only valid if there is an empty space at the end of the line. Both your own and opponent tokens can be pushed.</p>
+                
+                <div class="move-example">
+                    <div class="move-label">Push Move:</div>
+                    <div class="move-row">
+                        <div class="token-container token-with-arrow">
+                            <div class="token-mini white"></div>
+                            <div class="move-direction-arrow">→</div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini black"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini white"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini empty"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="move-label">After White Pushes Right:</div>
+                    <div class="move-row">
+                        <div class="token-container">
+                            <div class="token-mini empty"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini white"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini black inactive"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini white"></div>
+                        </div>
+                    </div>
+                    <p><small>When pushing, the entire connected line moves one space.</small></p>
+                </div>
+                
+                <!-- Inactivity Rule -->
+                <p><strong>Inactivity:</strong> Any opponent tokens that you push become inactive (marked with red) for their next turn. Your own pushed tokens remain active. Inactive tokens cannot be moved but can still be pushed.</p>
+                <p><small>Note: In the push example above, the black token becomes inactive (red dot) for black's next turn.</small></p>
+                
+                <!-- Capture Rule with Examples -->
+                <p><strong>Capture:</strong> When a token is surrounded on all four orthogonal sides (by tokens or board edges), it is immediately captured (turned blue). Captured tokens cannot be moved directly but can be pushed. Once captured, tokens remain captured for the rest of the game.</p>
+                
+                <!-- Capture examples -->
+                <div class="capture-example">
+                    <div class="capture-label">Capture by 4 surrounding tokens:</div>
+                    <div class="capture-grid">
+                        <div class="token-container"></div>
+                        <div class="token-container">
+                            <div class="token-mini black"></div>
+                        </div>
+                        <div class="token-container"></div>
+                        
+                        <div class="token-container">
+                            <div class="token-mini white"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini white captured"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini black"></div>
+                        </div>
+                        
+                        <div class="token-container"></div>
+                        <div class="token-container">
+                            <div class="token-mini white"></div>
+                        </div>
+                        <div class="token-container"></div>
+                    </div>
+                    <p><small>When a token is surrounded on all four sides by any combination of tokens, it is immediately captured (turned blue).</small></p>
+                </div>
+                
+                <!-- Fixed: Capture by board edges + tokens (corner capture) -->
+                <div class="capture-example">
+                    <div class="capture-label">Capture by board edges + tokens (corner capture):</div>
+                    <div class="capture-grid capture-grid-edge">                                
+                        <div class="token-container">
+                            <div class="token-mini white"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini black captured"></div>
+                        </div>
+                        <div class="token-container">
+                            <div class="token-mini white"></div>
+                        </div>
+                        
+                        <div class="token-container"></div>
+                        <div class="token-container">
+                            <div class="token-mini white"></div>
+                        </div>
+                        <div class="token-container"></div>
+                        
+                        <div class="token-container"></div>
+                        <div class="token-container"></div>
+                        <div class="token-container"></div>
+                    </div>
+                    <p><small>A token in the corner can be captured by just 2 tokens because the board edges count as surrounding.</small></p>
+                </div>
+                
+                <h3>Victory Conditions</h3>
+                <p>The game ends immediately when either:</p>
+                <ul>
+                    <li>A player captures all of their opponent's tokens</li>
+                    <li>A player has no legal moves on their turn</li>
+                </ul>
+            </div>
+            <div class="rules-button-container">
+                <button id="rules-back-btn" class="large-btn">Back to Main Menu</button>
+            </div>
         </div>
     </div>
         
@@ -397,18 +440,18 @@
                     <div class="player-control">
                         <span class="player-label">Black Player:</span>
                         <div class="player-options">
-                            <button class="player-type-btn active" data-player="black" data-type="human">Human</button>
-                            <button class="player-type-btn" data-player="black" data-type="ai">AI</button>
+                            <button class="player-type-btn" data-player="black" data-type="human">Human</button>
+                            <button class="player-type-btn active" data-player="black" data-type="ai">AI</button>
                         </div>
-                        <div class="ai-level-container black-ai-levels hidden">
+                        <div class="ai-level-container black-ai-levels">
                             <div class="ai-level-selection">
                                 <span class="ai-level-label">Beginner</span>
                                 <div class="ai-level-buttons">
-                                    <button class="ai-level-btn" data-player="black" data-level="1">1</button>
+                                    <button class="ai-level-btn active" data-player="black" data-level="1">1</button>
                                     <button class="ai-level-btn" data-player="black" data-level="2">2</button>
                                     <button class="ai-level-btn" data-player="black" data-level="3">3</button>
                                     <button class="ai-level-btn" data-player="black" data-level="4">4</button>
-                                    <button class="ai-level-btn active" data-player="black" data-level="5">5</button>
+                                    <button class="ai-level-btn" data-player="black" data-level="5">5</button>
                                     <button class="ai-level-btn" data-player="black" data-level="6">6</button>
                                     <button class="ai-level-btn" data-player="black" data-level="7">7</button>
                                     <button class="ai-level-btn" data-player="black" data-level="8">8</button>
@@ -422,68 +465,6 @@
                     <div class="menu-buttons">
                         <button id="start-game-btn" class="large-btn">Start New Game</button>
                         <button id="resume-game-btn" class="large-btn hidden">Resume Game</button>
-                    </div>
-                </div>
-            </div>
-                
-            <div class="menu-right">
-                <div class="rules-section">
-                    <!-- Rules content is the same as in standard-setup -->
-                    <h2>Game Rules</h2>
-                    <div class="rules-content">
-                        <p class="game-goal">The goal of Pressure is to capture all of your opponent's tokens.</p>
-                        
-                        <h3>Token Types</h3>
-                        <!-- Combined white and black tokens in one row -->
-                        <div class="token-example">
-                            <div class="token-container">
-                                <div class="token-mini white"></div>
-                            </div>
-                            <div class="token-container">
-                                <div class="token-mini black"></div>
-                            </div>
-                            <div class="token-description">Active tokens - can be moved on their owner's turn</div>
-                        </div>
-                        
-                        <!-- Combined inactive tokens in one row -->
-                        <div class="token-example">
-                            <div class="token-container">
-                                <div class="token-mini white inactive"></div>
-                            </div>
-                            <div class="token-container">
-                                <div class="token-mini black inactive"></div>
-                            </div>
-                            <div class="token-description">Inactive tokens - cannot move until next turn, but can be pushed</div>
-                        </div>
-                        
-                        <!-- Captured token -->
-                        <div class="token-example">
-                            <div class="token-container">
-                                <div class="token-mini captured"></div>
-                            </div>
-                            <div class="token-description">Captured token - permanently inactive, but can still be pushed</div>
-                        </div>
-                        
-                        <h3>Core Rules</h3>
-                        
-                        <!-- Movement Rule -->
-                        <p><strong>Movement:</strong> On your turn, move one of your tokens to an adjacent space (up, down, left, or right). You cannot move diagonally or move inactive tokens (marked with red).</p>
-                        
-                        <!-- Pushing Rule -->
-                        <p><strong>Pushing:</strong> When moving into an occupied space, you are "pushing" the whole connected line of tokens. Pushing is only valid if there is an empty space at the end of the line. Both your own and opponent tokens can be pushed.</p>
-                        
-                        <!-- Inactivity Rule -->
-                        <p><strong>Inactivity:</strong> Any opponent tokens that you push become inactive (marked with red) for their next turn. Your own pushed tokens remain active.</p>
-                        
-                        <!-- Capture Rule -->
-                        <p><strong>Capture:</strong> When a token is surrounded on all four orthogonal sides (by tokens or board edges), it is immediately captured (turned blue).</p>
-                        
-                        <h3>Victory Conditions</h3>
-                        <p>The game ends immediately when either:</p>
-                        <ul>
-                            <li>A player captures all of their opponent's tokens</li>
-                            <li>A player has no legal moves on their turn</li>
-                        </ul>
                     </div>
                 </div>
             </div>
@@ -558,11 +539,11 @@
     
     <!-- Extensions -->
     <script src="js/game-extension.js"></script>
-	<script src="js/tutorial-service.js"></script>
-	<script src="js/tutorial-steps.js"></script>
-	<script src="js/tutorial-ui.js"></script>
-	<script src="js/tutorial-events.js"></script>
-	<script src="js/tutorial-setup.js"></script>    
+    <script src="js/tutorial-service.js"></script>
+    <script src="js/tutorial-steps.js"></script>
+    <script src="js/tutorial-ui.js"></script>
+    <script src="js/tutorial-events.js"></script>
+    <script src="js/tutorial-setup.js"></script>    
     <!-- Main entry point - must be loaded last -->
     <script src="js/index.js"></script>
 </body>

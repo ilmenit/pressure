@@ -83,7 +83,8 @@
 .player-vs-opponent {
     display: flex;
     align-items: center;
-    margin-right: 10px;
+    position: relative; /* Add relative positioning as context for VS */
+    margin-right: 43px; /* Increase space between player and opponent */
 }
 
 /* Fixed: Increased player portrait size to match opponent */
@@ -102,12 +103,15 @@
     object-fit: cover;
 }
 
-/* Fixed: Improved VS indicator positioning */
+/* VS indicator positioning */
 .vs-indicator {
-    margin: 0 15px; /* Increased horizontal margin */
+    position: absolute; /* Position it absolutely */
+    right: -30px; /* Move it outside the player container toward opponent */
+    top: 50%; /* Center vertically */
+    transform: translate(50%, -50%); /* Center the indicator itself */
     color: #FFD700;
     font-weight: bold;
-    font-size: 1rem; /* Increased font size */
+    font-size: 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -115,6 +119,7 @@
     width: 30px;
     background-color: rgba(0, 0, 0, 0.3);
     border-radius: 50%;
+    z-index: 1; /* Ensure it appears above other elements */
 }
 
 .opponent-portrait {

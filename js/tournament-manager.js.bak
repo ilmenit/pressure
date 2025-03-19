@@ -485,13 +485,10 @@ class TournamentManager {
                 }
             };
             
-            // Generate difficulty stars based on opponent difficulty
-            const difficultyStars = this.generateDifficultyStars(opponent.difficulty);
-            
             opponentInfo.innerHTML = `
                 <div class="opponent-name">${opponent.name}</div>
                 <div class="opponent-difficulty">
-                    ${difficultyStars}
+                    ${'★'.repeat(opponent.difficulty)}${'☆'.repeat(3 - opponent.difficulty)}
                 </div>
                 <div class="opponent-color">Playing as ${this.aiColor.toUpperCase()}</div>
             `;
@@ -504,16 +501,6 @@ class TournamentManager {
                 });
             }
         }
-    }
-    
-    /**
-     * Generate difficulty stars display
-     * @param {number} difficulty - The difficulty level
-     * @param {number} maxStars - Maximum number of stars to display (default is 6)
-     * @returns {string} HTML string with stars
-     */
-    generateDifficultyStars(difficulty, maxStars = 6) {
-        return '★'.repeat(Math.min(difficulty, maxStars)) + '☆'.repeat(Math.max(0, maxStars - difficulty));
     }
     
     /**
@@ -1193,7 +1180,7 @@ class TournamentManager {
                 <div class="opponent-info">
                     <div class="opponent-name">${opponent.name}</div>
                     <div class="opponent-difficulty">
-                        ${this.generateDifficultyStars(opponent.difficulty)}
+                        ${'★'.repeat(opponent.difficulty)}${'☆'.repeat(3 - opponent.difficulty)}
                     </div>
                 </div>
                 ${opponent.defeated ? '<div class="opponent-status">Defeated</div>' : ''}

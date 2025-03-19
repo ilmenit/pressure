@@ -1,6 +1,5 @@
 /**
  * Game entry point - initializes modes and handles switching between them
- * Refactored to use event-driven architecture
  */
 
 // Store game instance globally for extensions to access
@@ -13,9 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // First, initialize the event system
     events = window.gameEvents || new EventSystem();
     window.gameEvents = events; // Ensure global access
-    
-    // Enable debug mode during development if needed
-    // events.setDebug(true);
     
     // Reference the existing game instance or create new one
     if (window.game) {
@@ -42,11 +38,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show main menu immediately
     showMainMenu();
     
-    // Emit application:initialized event
-    events.emit('application:initialized', {
-        timestamp: Date.now()
-    });
+    // Set default player settings - Black player should be AI with level 1
+    setDefaultPlayerSettings();
 });
+
+/**
+ * Set default player settings
+ */
+function setDefaultPlayerSettings() {
+    // Set black player to AI by default
+    const blackAIBtn = document.querySelector('.player-type-btn[data-player="black"][data-type="ai"]');
+    const blackAILevel1 = document.querySelector('.ai-level-btn[data-player="black"][data-level="1"]');
+    
+    if (blackAIBtn) {
+        blackAIBtn.classList.add('active');
+        document.querySelector('.player-type-btn[data-player="black"][data-type="human"]').classList.remove('active');
+        
+        // Show AI level selection
+        const blackAILevels = document.querySelector('.black-ai-levels');
+        if (blackAILevels) {
+            blackAILevels.classList.remove('hidden');
+        }
+    }
+    
+    // Set black AI level to 1
+    if (blackAILevel1) {
+        // Clear other active levels
+        document.querySelectorAll('.ai-level-btn[data-player="black"]').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        blackAILevel1.classList.add('active');
+    }
+}
 
 /**
  * Set up event listeners for game-level events
@@ -78,29 +101,24 @@ function setupGameEventListeners() {
             completeScreen.classList.remove('hidden');
         }
     });
-    
-    // Other global event listeners can be added here
 }
 
 /**
  * Setup main menu event listeners
  */
 function setupMainMenuListeners() {
-    // Make sure elements exist before adding event listeners
-    const standardModeBtn = document.getElementById('standard-mode-btn');
-    if (standardModeBtn) {
-        standardModeBtn.addEventListener('click', () => {
-            showStandardSetup();
-            
-            // Emit event
-            if (events) {
-                events.emit('menu:standardSetupOpened', {
-                    timestamp: Date.now()
-                });
+    // Tutorial mode button
+    const tutorialModeBtn = document.getElementById('tutorial-mode-btn');
+    if (tutorialModeBtn) {
+        tutorialModeBtn.addEventListener('click', () => {
+            // Start tutorial directly (function defined in tutorial-service.js)
+            if (typeof window.startTutorial === 'function') {
+                window.startTutorial();
+            } else {
+                console.error("Tutorial service not loaded");
+                alert("Tutorial mode will be available in a future update.");
             }
         });
-    } else {
-        console.error("Missing element: standard-mode-btn");
     }
     
     // Tournament mode button
@@ -108,84 +126,47 @@ function setupMainMenuListeners() {
     if (tournamentModeBtn) {
         tournamentModeBtn.addEventListener('click', () => {
             showTournamentScreen();
-            
-            // Emit event
-            if (events) {
-                events.emit('menu:tournamentOpened', {
-                    timestamp: Date.now()
-                });
-            }
         });
-    } else {
-        console.error("Missing element: tournament-mode-btn");
     }
     
-    // Tutorial mode button - Updated to launch the tutorial directly
-    const tutorialModeBtn = document.getElementById('tutorial-mode-btn');
-    if (tutorialModeBtn) {
-        tutorialModeBtn.addEventListener('click', () => {
-            // Start tutorial directly (function defined in tutorial-service.js)
-            if (typeof window.startTutorial === 'function') {
-                window.startTutorial();
-                
-                // Emit event
-                if (events) {
-                    events.emit('tutorial:started', {
-                        timestamp: Date.now()
-                    });
-                }
-            } else {
-                console.error("Tutorial service not loaded");
-                alert("Tutorial mode will be available in a future update.");
-            }
+    // Standard mode button
+    const standardModeBtn = document.getElementById('standard-mode-btn');
+    if (standardModeBtn) {
+        standardModeBtn.addEventListener('click', () => {
+            showStandardSetup();
         });
-    } else {
-        console.error("Missing element: tutorial-mode-btn");
     }
     
-    // Add tournament settings button to main menu
-    const mainMenu = document.getElementById('main-menu');
-    if (mainMenu) {
-        // Check if tournament settings button already exists
-        let tournamentSettingsBtn = document.getElementById('tournament-settings-btn');
-        if (!tournamentSettingsBtn) {
-            // Create the button if it doesn't exist
-            tournamentSettingsBtn = document.createElement('button');
-            tournamentSettingsBtn.id = 'tournament-settings-btn';
-            tournamentSettingsBtn.className = 'large-btn';
-            tournamentSettingsBtn.style.marginTop = '20px';
-            tournamentSettingsBtn.textContent = 'Tournament Settings';
-            
-            // Add it to the main menu
-            const modeButtons = mainMenu.querySelector('.mode-buttons');
-            if (modeButtons) {
-                modeButtons.appendChild(tournamentSettingsBtn);
-            } else {
-                mainMenu.appendChild(tournamentSettingsBtn);
-            }
-            
-            // Add click handler for tournament settings
-            tournamentSettingsBtn.addEventListener('click', () => {
-                showTournamentSettings();
-                
-                // Emit event
-                if (events) {
-                    events.emit('menu:tournamentSettingsOpened', {
-                        timestamp: Date.now()
-                    });
-                }
-            });
-        }
+    // NEW: Read Game Rules button
+    const readRulesBtn = document.getElementById('read-rules-btn');
+    if (readRulesBtn) {
+        readRulesBtn.addEventListener('click', () => {
+            showRulesScreen();
+        });
     }
     
+    // Rules back button
+    const rulesBackBtn = document.getElementById('rules-back-btn');
+    if (rulesBackBtn) {
+        rulesBackBtn.addEventListener('click', () => {
+            showMainMenu();
+        });
+    }
+    
+    // Tournament settings button
+    const tournamentSettingsBtn = document.getElementById('tournament-settings-btn');
+    if (tournamentSettingsBtn) {
+        tournamentSettingsBtn.addEventListener('click', () => {
+            showTournamentSettings();
+        });
+    }
+
     // Standard mode setup controls
     const standardStartBtn = document.getElementById('standard-start-game-btn');
     if (standardStartBtn) {
         standardStartBtn.addEventListener('click', () => {
             startStandardGame();
         });
-    } else {
-        console.error("Missing element: standard-start-game-btn");
     }
     
     const standardBackBtn = document.getElementById('standard-back-btn');
@@ -193,8 +174,6 @@ function setupMainMenuListeners() {
         standardBackBtn.addEventListener('click', () => {
             showMainMenu();
         });
-    } else {
-        console.error("Missing element: standard-back-btn");
     }
     
     // Menu button in game controls
@@ -216,14 +195,6 @@ function setupMainMenuListeners() {
                     menuScreen.classList.add('hidden');
                 }
                 showMainMenu();
-                
-                // Emit event
-                if (events) {
-                    events.emit('menu:mainMenuOpened', {
-                        from: 'gameScreen',
-                        timestamp: Date.now()
-                    });
-                }
             }, 50);
         };
     }
@@ -247,14 +218,6 @@ function setupMainMenuListeners() {
                     menuScreen.classList.add('hidden');
                 }
                 showMainMenu();
-                
-                // Emit event
-                if (events) {
-                    events.emit('menu:mainMenuOpened', {
-                        from: 'winModal',
-                        timestamp: Date.now()
-                    });
-                }
             }, 50);
         };
     }
@@ -281,17 +244,9 @@ function setupMainMenuListeners() {
                 if (mainMenu) mainMenu.classList.add('hidden');
                 if (gameScreen) gameScreen.classList.remove('hidden');
                 
-                // FIXED: Ensure undo/redo buttons are properly shown/hidden
+                // Ensure undo/redo buttons are properly shown/hidden
                 if (game.ui) {
                     game.ui.updateUndoRedoButtons();
-                }
-                
-                // Emit event
-                if (events) {
-                    events.emit('game:resumed', {
-                        mode: 'standard',
-                        timestamp: Date.now()
-                    });
                 }
             } 
             // If in tournament mode
@@ -310,18 +265,9 @@ function setupMainMenuListeners() {
                     if (opponentDisplay) opponentDisplay.classList.remove('hidden');
                     if (playerDisplay) playerDisplay.classList.remove('hidden');
                     
-                    // FIXED: Ensure undo/redo buttons are properly hidden
+                    // Ensure undo/redo buttons are properly hidden
                     if (game.ui) {
                         game.ui.updateUndoRedoButtons();
-                    }
-                    
-                    // Emit event
-                    if (events) {
-                        events.emit('game:resumed', {
-                            mode: 'tournament',
-                            state: 'active',
-                            timestamp: Date.now()
-                        });
                     }
                 } 
                 // Otherwise show tournament screen
@@ -330,13 +276,6 @@ function setupMainMenuListeners() {
                     if (tournamentScreen) {
                         tournamentScreen.classList.remove('hidden');
                         tournamentManager.renderLadder();
-                        
-                        // Emit event
-                        if (events) {
-                            events.emit('tournament:resumed', {
-                                timestamp: Date.now()
-                            });
-                        }
                     }
                 }
             }
@@ -364,13 +303,6 @@ function showMainMenu() {
             menuScreen.classList.remove('hidden');
         }
     }
-    
-    // Emit main menu shown event
-    if (events) {
-        events.emit('screen:mainMenuShown', {
-            timestamp: Date.now()
-        });
-    }
 }
 
 /**
@@ -385,7 +317,8 @@ function hideAllScreens() {
         'tournament-screen',
         'tournament-complete-screen',
         'game-screen',
-        'tournament-settings'
+        'tournament-settings',
+        'rules-screen' // Added rules screen
     ];
     
     screens.forEach(screenId => {
@@ -404,13 +337,16 @@ function showStandardSetup() {
     
     const standardSetup = document.getElementById('standard-setup');
     if (standardSetup) standardSetup.classList.remove('hidden');
+}
+
+/**
+ * Show rules screen
+ */
+function showRulesScreen() {
+    hideAllScreens();
     
-    // Emit setup screen shown event
-    if (events) {
-        events.emit('screen:standardSetupShown', {
-            timestamp: Date.now()
-        });
-    }
+    const rulesScreen = document.getElementById('rules-screen');
+    if (rulesScreen) rulesScreen.classList.remove('hidden');
 }
 
 /**
@@ -427,13 +363,6 @@ function showTournamentScreen() {
             tournamentManager.renderLadder();           
             setTimeout(() => tournamentManager.scrollToCurrentOpponent(), 100);
         }
-    }
-    
-    // Emit tournament screen shown event
-    if (events) {
-        events.emit('screen:tournamentShown', {
-            timestamp: Date.now()
-        });
     }
 }
 
@@ -472,13 +401,6 @@ function showTournamentSettings() {
                     if (tournamentManager) {
                         tournamentManager.resetProgress();
                         alert('Tournament progress has been reset.');
-                        
-                        // Emit progress reset event
-                        if (events) {
-                            events.emit('tournament:progressReset', {
-                                timestamp: Date.now()
-                            });
-                        }
                     }
                 }
             });
@@ -491,25 +413,10 @@ function showTournamentSettings() {
                 showMainMenu();
             });
         }
-        
-        // Emit settings created event
-        if (events) {
-            events.emit('settings:created', {
-                element: 'tournament-settings',
-                timestamp: Date.now()
-            });
-        }
     }
     
     // Show settings screen
     tournamentSettings.classList.remove('hidden');
-    
-    // Emit settings shown event
-    if (events) {
-        events.emit('screen:settingsShown', {
-            timestamp: Date.now()
-        });
-    }
 }
 
 /**
@@ -575,19 +482,11 @@ function startStandardGame() {
         resumeGameBtn.classList.remove('hidden');
     }
     
-    // FIXED: Ensure undo/redo buttons are properly shown
+    // Ensure undo/redo buttons are properly shown
     if (game.ui) {
         game.ui.updateUndoRedoButtons();
     }
-    
-    // Emit standard game started event
-    if (events) {
-        events.emit('game:standardStarted', {
-            blackPlayerType,
-            whitePlayerType,
-            blackAILevel,
-            whiteAILevel,
-            timestamp: Date.now()
-        });
-    }
 }
+
+// Make showStandardSetup function available globally for direct navigation
+window.showStandardSetup = showStandardSetup;

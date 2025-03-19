@@ -10,6 +10,9 @@ class UIStatusManager {
         
         // Setup event listeners
         this.setupEventListeners();
+        
+        // Replace win modal with our version (removing it first if it exists)
+        this.forceReplaceWinModal();
     }
 
     /**
@@ -48,47 +51,73 @@ class UIStatusManager {
     }
 
     /**
+     * Force replace the win modal (remove and recreate)
+     */
+    forceReplaceWinModal() {
+        // Remove existing win modal if it exists
+        const existingModal = document.getElementById('win-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create new win modal
+        const modal = document.createElement('div');
+        modal.id = 'win-modal';
+        modal.className = 'modal hidden';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h2 id="win-modal-title">Game Over</h2>
+                <p id="win-modal-message"></p>
+                <div class="modal-buttons">
+                    <button id="win-modal-undo">Undo Last Move</button>
+                    <button id="win-modal-new-standard">New One on One Game</button>
+                    <button id="win-modal-menu">Return to Menu</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Add event listeners for the buttons
+        document.getElementById('win-modal-undo').addEventListener('click', () => {
+            document.getElementById('win-modal').classList.add('hidden');
+            if (this.uiManager) this.uiManager.undoMove();
+        });
+        
+        // Add event listener for the new "New One on One Game" button
+        document.getElementById('win-modal-new-standard').addEventListener('click', () => {
+            document.getElementById('win-modal').classList.add('hidden');
+            // Show standard game setup directly
+            if (typeof window.showStandardSetup === 'function') {
+                window.showStandardSetup();
+            } else {
+                console.warn('showStandardSetup function not available');
+                // Fallback to opening menu
+                if (this.uiManager) this.uiManager.openMenu();
+            }
+        });
+        
+        document.getElementById('win-modal-menu').addEventListener('click', () => {
+            document.getElementById('win-modal').classList.add('hidden');
+            if (this.uiManager) this.uiManager.openMenu();
+        });
+        
+        // Emit event if possible
+        if (this.events) {
+            this.events.emit('modal:created', {
+                type: 'winModal',
+                timestamp: Date.now()
+            });
+        }
+    }
+
+    /**
      * Set up the win modal
      */
     setupWinModal() {
-        // Check if win modal already exists
-        if (!document.getElementById('win-modal')) {
-            const modal = document.createElement('div');
-            modal.id = 'win-modal';
-            modal.className = 'modal hidden';
-            
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <h2 id="win-modal-title">Game Over</h2>
-                    <p id="win-modal-message"></p>
-                    <div class="modal-buttons">
-                        <button id="win-modal-undo">Undo Last Move</button>
-                        <button id="win-modal-menu">Return to Menu</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            // Add event listeners for the new buttons
-            document.getElementById('win-modal-undo').addEventListener('click', () => {
-                document.getElementById('win-modal').classList.add('hidden');
-                if (this.uiManager) this.uiManager.undoMove();
-            });
-            
-            document.getElementById('win-modal-menu').addEventListener('click', () => {
-                document.getElementById('win-modal').classList.add('hidden');
-                if (this.uiManager) this.uiManager.openMenu();
-            });
-            
-            // Emit event if possible
-            if (this.events) {
-                this.events.emit('modal:created', {
-                    type: 'winModal',
-                    timestamp: Date.now()
-                });
-            }
-        }
+        // Just use our forceReplaceWinModal method to ensure consistency
+        this.forceReplaceWinModal();
     }
 
     /**
@@ -99,12 +128,17 @@ class UIStatusManager {
         const modalMessage = document.getElementById('win-modal-message');
         const modal = document.getElementById('win-modal');
         const undoButton = document.getElementById('win-modal-undo');
+        const newStandardButton = document.getElementById('win-modal-new-standard');
         
-        // Hide undo button in tournament mode
-        if (this.game.isTournamentMode && undoButton) {
-            undoButton.style.display = 'none';
-        } else if (undoButton) {
-            undoButton.style.display = 'inline-block';
+        // Handle button visibility based on tournament mode
+        if (this.game.isTournamentMode) {
+            // Hide undo and new standard game buttons in tournament mode
+            if (undoButton) undoButton.style.display = 'none';
+            if (newStandardButton) newStandardButton.style.display = 'none';
+        } else {
+            // Show buttons in standard mode
+            if (undoButton) undoButton.style.display = 'inline-block';
+            if (newStandardButton) newStandardButton.style.display = 'inline-block';
         }
         
         const winnerName = winner.charAt(0).toUpperCase() + winner.slice(1);
