@@ -573,16 +573,6 @@ class TutorialService {
         console.log("Token captured:", data);
         this.stepManager.handleTokenCaptured(data);
     }
-    
-    /**
-     * Show a hint for the current step
-     */
-    showHint() {
-        const step = this.stepManager.getStep(this.currentStepIndex);
-        if (step && step.hint) {
-            this.uiManager.showHint(step.hint, this.currentStepIndex + 1, this.stepManager.getTotalSteps(), step.title);
-        }
-    }
 }
 
 /**

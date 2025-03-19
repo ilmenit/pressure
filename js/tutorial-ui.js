@@ -19,7 +19,6 @@ class TutorialUIManager {
         // Event handlers for proper cleanup
         this.continueHandler = null;
         this.skipHandler = null;
-        this.startGameHandler = null;
         this.tryAgainHandler = null;
     }
     
@@ -294,23 +293,6 @@ class TutorialUIManager {
                 50% { transform: translateY(-10px); }
             }
             
-            /* Path Visualization */
-            .tutorial-path {
-                position: absolute;
-                z-index: 39;
-                background-color: rgba(255, 215, 0, 0.3);
-                border: 2px solid rgba(255, 215, 0, 0.7);
-                border-radius: 4px;
-                pointer-events: none;
-                animation: tutorial-path-pulse 2s infinite;
-            }
-            
-            @keyframes tutorial-path-pulse {
-                0% { opacity: 0.5; }
-                50% { opacity: 0.8; }
-                100% { opacity: 0.5; }
-            }
-            
             /* Ensure token contrast */
             .token.white {
                 background-color: #f0f0f0 !important;
@@ -426,18 +408,6 @@ class TutorialUIManager {
     }
     
     /**
-     * Show a hint in the message box
-     */
-    showHint(hint, currentStep, totalSteps, title) {
-        if (this.messageBox) {
-            // Combine step number with title for cleaner presentation
-            const titleElement = `<span class="tutorial-step-title">Tutorial ${currentStep} of ${totalSteps}: ${title}</span>`;
-            const content = `${titleElement}<span class="hint-text">Hint: ${hint}</span>`;
-            this.messageBox.innerHTML = content;
-        }
-    }
-    
-    /**
      * Show the continue button
      */
     showContinueButton() {
@@ -501,9 +471,6 @@ class TutorialUIManager {
         // Remove event listeners
         if (this.continueButton) {
             this.continueButton.removeEventListener('click', this.continueHandler);
-            if (this.startGameHandler) {
-                this.continueButton.removeEventListener('click', this.startGameHandler);
-            }
         }
         
         if (this.skipButton) {
@@ -557,14 +524,6 @@ class TutorialUIManager {
      * Clear visual guidance elements
      */
     clearVisualGuidance() {
-        // Remove arrows
-        const arrows = document.querySelectorAll('.tutorial-arrow');
-        arrows.forEach(arrow => {
-            if (arrow.parentNode) {
-                arrow.parentNode.removeChild(arrow);
-            }
-        });
-        
         // Remove paths
         const paths = document.querySelectorAll('.tutorial-path');
         paths.forEach(path => {

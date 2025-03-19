@@ -13,9 +13,6 @@ class TutorialEventHandler {
         
         // Track last selected position for click-then-move pattern
         this.lastSelectedPosition = null;
-        
-        // Hint timer
-        this.hintTimeout = null;
     }
     
     /**
@@ -46,9 +43,6 @@ class TutorialEventHandler {
         
         // Add custom event listener for selection preservation
         this.addSelectionPreservationHandler();
-        
-        // Schedule the first hint
-        this.scheduleHint();
     }
     
     /**
@@ -93,9 +87,6 @@ class TutorialEventHandler {
         this.events.off('board:rendered', this.boundHandlers.boardRendered);
         this.events.off('drag:started', this.boundHandlers.dragStarted);
         this.events.off('drag:dropped', this.boundHandlers.dragDropped);
-        
-        // Cancel any pending hint
-        this.cancelHint();
     }
     
     /**
@@ -107,14 +98,8 @@ class TutorialEventHandler {
         // Store the last selected position for click-then-move pattern
         this.lastSelectedPosition = data.position;
         
-        // Cancel any pending hint
-        this.cancelHint();
-        
         // Pass to tutorial service
         this.tutorialService.handleTokenSelected(data);
-        
-        // Schedule next hint
-        this.scheduleHint();
         
         // Emit event
         if (this.events) {
@@ -135,14 +120,8 @@ class TutorialEventHandler {
         // Reset last selected position
         this.lastSelectedPosition = null;
         
-        // Cancel any pending hint
-        this.cancelHint();
-        
         // Pass to tutorial service
         this.tutorialService.handleMoveExecuted(data);
-        
-        // Schedule next hint
-        this.scheduleHint();
         
         // Emit event
         if (this.events) {
@@ -160,14 +139,8 @@ class TutorialEventHandler {
     handleTokenCaptured(data) {
         if (!this.tutorialService.isActive) return;
         
-        // Cancel any pending hint
-        this.cancelHint();
-        
         // Pass to tutorial service
         this.tutorialService.handleTokenCaptured(data);
-        
-        // Schedule next hint
-        this.scheduleHint();
         
         // Emit event
         if (this.events) {
@@ -237,9 +210,7 @@ class TutorialEventHandler {
         this.lastSelectedPosition = data.position;
         
         // Similar to token selected
-        this.cancelHint();
         this.tutorialService.handleTokenSelected(data);
-        this.scheduleHint();
         
         // Emit event
         if (this.events) {
@@ -260,12 +231,6 @@ class TutorialEventHandler {
         // Reset selected position
         this.lastSelectedPosition = null;
         
-        // Cancel hint
-        this.cancelHint();
-        
-        // Schedule new hint
-        this.scheduleHint();
-        
         // Emit event
         if (this.events) {
             this.events.emit('tutorial:actionPerformed', {
@@ -273,29 +238,6 @@ class TutorialEventHandler {
                 data: data,
                 timestamp: Date.now()
             });
-        }
-    }
-    
-    /**
-     * Schedule a hint to appear after inactivity
-     */
-    scheduleHint() {
-        // Cancel any existing hint timeout
-        this.cancelHint();
-        
-        // Set a new timeout
-        this.hintTimeout = setTimeout(() => {
-            this.tutorialService.showHint();
-        }, 12000); // Show hint after 12 seconds of inactivity
-    }
-    
-    /**
-     * Cancel any pending hint
-     */
-    cancelHint() {
-        if (this.hintTimeout) {
-            clearTimeout(this.hintTimeout);
-            this.hintTimeout = null;
         }
     }
 }

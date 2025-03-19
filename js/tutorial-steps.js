@@ -13,6 +13,7 @@ class TutorialStepManager {
         this.expectedActionIndex = 0;
         this.waitingForAction = false;
         this.isRetrying = false;
+        this.waitingForContinue = false;
         
         // Step definitions
         this.steps = this.defineSteps();
@@ -54,8 +55,7 @@ class TutorialStepManager {
                         completesStep: true,
                         displayDuration: 3000 // Show text for 3 seconds before showing continue button
                     }
-                ],
-                hint: "Click on the white token in the center of the board."
+                ]
             },
             
             // Step 2: Turn Alternation
@@ -107,6 +107,8 @@ class TutorialStepManager {
                                             tutorialService.currentStepIndex + 1,
                                             tutorialService.stepManager.getTotalSteps()
                                         );
+                                        // Clear all highlights
+                                        tutorialService.uiManager.clearHighlights();
                                         // Show continue button after a delay to give time to read
                                         setTimeout(() => {
                                             tutorialService.uiManager.showContinueButton();
@@ -116,8 +118,7 @@ class TutorialStepManager {
                             }, 1500);
                         }
                     }
-                ],
-                hint: "Click on your white token to select it, then choose an empty space to move to."
+                ]
             },
             
             // Step 3: Basic Pushing
@@ -161,8 +162,7 @@ class TutorialStepManager {
                             }, 1500);
                         }
                     }
-                ],
-                hint: "Select your white token, then click on the space where the black token is to push it to the right."
+                ]
             },
             
             // Step 4: Multi-Token Pushing
@@ -206,8 +206,7 @@ class TutorialStepManager {
                             }, 1500);
                         }
                     }
-                ],
-                hint: "Select your white token on the left, then click on the black token to push both tokens in the line to the right."
+                ]
             },
             
             // Step 5: Token Capture
@@ -263,8 +262,7 @@ class TutorialStepManager {
                             }, 1000);
                         }
                     }
-                ],
-                hint: "Select your white token on the right, then move it to position (2,3) to surround the black token completely."
+                ]
             },
             
             // Step 6: Edge Capture Strategy
@@ -312,8 +310,7 @@ class TutorialStepManager {
                             }, 1000);
                         }
                     }
-                ],
-                hint: "Select your white token and move it to position (4,2) to complete the capture. The board edge counts as one of the surrounding sides."
+                ]
             },
             
             // Step 7: Victory Conditions
@@ -367,8 +364,7 @@ class TutorialStepManager {
                             }, 1000);
                         }
                     }
-                ],
-                hint: "Move your white token to position (1,2) - the right side of the black token - to complete the capture and win the game."
+                ]
             }
         ];
     }
@@ -394,6 +390,9 @@ class TutorialStepManager {
      * Handle token selection
      */
     handleTokenSelected(data) {
+        // Don't allow selecting if we're waiting for continue button
+        if (this.waitingForContinue) return;
+        
         const step = this.getStep(this.tutorialService.currentStepIndex);
         if (!step) return;
         
@@ -443,6 +442,9 @@ class TutorialStepManager {
      * Handle move execution
      */
     handleMoveExecuted(data) {
+        // Don't allow moves if we're waiting for continue button
+        if (this.waitingForContinue) return;
+        
         const step = this.getStep(this.tutorialService.currentStepIndex);
         if (!step) return;
         
@@ -493,6 +495,9 @@ class TutorialStepManager {
             return;
         }
         
+        // Clear all highlights after a valid move
+        this.tutorialService.uiManager.clearHighlights();
+        
         // Valid move - update instructions
         if (expectedAction.nextInstructions) {
             this.tutorialService.uiManager.showInstructions(
@@ -501,6 +506,11 @@ class TutorialStepManager {
                 this.tutorialService.currentStepIndex + 1,
                 this.getTotalSteps()
             );
+        }
+        
+        // Mark that we're waiting for continue to prevent further moves
+        if (expectedAction.completesStep || expectedAction.onComplete) {
+            this.waitingForContinue = true;
         }
         
         // Execute any after-completion logic
@@ -571,6 +581,9 @@ class TutorialStepManager {
             return;
         }
         
+        // Mark that we're waiting for continue to prevent further moves
+        this.waitingForContinue = true;
+        
         // Valid capture - update instructions
         if (expectedAction.nextInstructions) {
             this.tutorialService.uiManager.showInstructions(
@@ -602,6 +615,7 @@ class TutorialStepManager {
     retryCurrentStep() {
         // Reset the retrying flag
         this.isRetrying = false;
+        this.waitingForContinue = false;
         
         // Reset to the beginning of the current step
         this.tutorialService.loadStep(this.tutorialService.currentStepIndex);
@@ -613,5 +627,6 @@ class TutorialStepManager {
     resetExpectedAction() {
         this.expectedActionIndex = 0;
         this.isRetrying = false;
+        this.waitingForContinue = false;
     }
 }
