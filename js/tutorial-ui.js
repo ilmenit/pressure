@@ -15,6 +15,10 @@ class TutorialUIManager {
         this.continueButton = null;
         this.skipButton = null;
         this.tryAgainButton = null;
+        this.tutorialControls = null;
+        
+        // Original game controls container to restore later
+        this.originalGameControls = null;
         
         // Event handlers for proper cleanup
         this.continueHandler = null;
@@ -28,7 +32,7 @@ class TutorialUIManager {
     setupTutorialUI() {
         this.createTutorialElements();
         this.ensureTutorialStylesLoaded();
-        this.hideGameControls();
+        this.setupTutorialControls();
     }
     
     /**
@@ -48,9 +52,33 @@ class TutorialUIManager {
         this.messageBox.id = 'tutorial-message';
         this.messageBox.className = 'tutorial-message';
         
-        // Create controls container - position it at the same location as game controls
-        const controlsContainer = document.createElement('div');
-        controlsContainer.className = 'tutorial-controls';
+        // Add message box to overlay
+        this.tutorialOverlay.appendChild(this.messageBox);
+        
+        // Add overlay to game screen
+        const gameScreen = document.getElementById('game-screen');
+        if (gameScreen) {
+            gameScreen.appendChild(this.tutorialOverlay);
+        }
+    }
+    
+    /**
+     * Setup tutorial controls by replacing the game controls
+     */
+    setupTutorialControls() {
+        // Find the game controls container
+        const gameControls = document.querySelector('.game-controls');
+        if (!gameControls) {
+            console.error('Game controls container not found');
+            return;
+        }
+        
+        // Save original game controls to restore later
+        this.originalGameControls = gameControls.cloneNode(true);
+        
+        // Create tutorial controls
+        this.tutorialControls = document.createElement('div');
+        this.tutorialControls.className = 'tutorial-controls';
         
         // Create continue button
         this.continueButton = document.createElement('button');
@@ -97,19 +125,16 @@ class TutorialUIManager {
         this.tryAgainButton.addEventListener('click', this.tryAgainHandler);
         
         // Add buttons to controls
-        controlsContainer.appendChild(this.continueButton);
-        controlsContainer.appendChild(this.tryAgainButton);
-        controlsContainer.appendChild(this.skipButton);
+        this.tutorialControls.appendChild(this.continueButton);
+        this.tutorialControls.appendChild(this.tryAgainButton);
+        this.tutorialControls.appendChild(this.skipButton);
         
-        // Add elements to overlay
-        this.tutorialOverlay.appendChild(this.messageBox);
-        this.tutorialOverlay.appendChild(controlsContainer);
+        // Replace game controls with tutorial controls
+        gameControls.innerHTML = '';
+        gameControls.appendChild(this.tutorialControls);
         
-        // Add overlay to game screen
-        const gameScreen = document.getElementById('game-screen');
-        if (gameScreen) {
-            gameScreen.appendChild(this.tutorialOverlay);
-        }
+        // Show the game controls container to ensure tutorial controls are visible
+        gameControls.style.display = 'flex';
     }
     
     /**
@@ -134,37 +159,46 @@ class TutorialUIManager {
      * Hide game controls during tutorial
      */
     hideGameControls() {
-        const undoBtn = document.getElementById('undo-btn');
-        const redoBtn = document.getElementById('redo-btn');
-        const menuBtn = document.getElementById('menu-btn');
-        
-        if (undoBtn) undoBtn.classList.add('hidden');
-        if (redoBtn) redoBtn.classList.add('hidden');
-        if (menuBtn) menuBtn.classList.add('hidden');
-        
-        // Also hide any game controls container that might be showing
-        const gameControls = document.querySelector('.game-controls');
-        if (gameControls) {
-            gameControls.style.display = 'none';
-        }
+        // This function is no longer needed as we're replacing the controls
+        // rather than hiding them
     }
     
     /**
      * Restore game controls
      */
     restoreGameControls() {
-        const undoBtn = document.getElementById('undo-btn');
-        const redoBtn = document.getElementById('redo-btn');
-        const menuBtn = document.getElementById('menu-btn');
-        
-        if (undoBtn) undoBtn.classList.remove('hidden');
-        if (redoBtn) redoBtn.classList.remove('hidden');
-        if (menuBtn) undoBtn.classList.remove('hidden');
-        
-        // Restore any game controls container 
-        const gameControls = document.querySelector('.game-controls');
-        if (gameControls) {
-            gameControls.style.display = '';
+        // Restore original game controls if they exist
+        if (this.originalGameControls) {
+            const gameControls = document.querySelector('.game-controls');
+            if (gameControls) {
+                // Replace with the original controls
+                gameControls.innerHTML = '';
+                
+                // Clone all child nodes from original game controls
+                Array.from(this.originalGameControls.childNodes).forEach(node => {
+                    gameControls.appendChild(node.cloneNode(true));
+                });
+                
+                // Restore event listeners for undo/redo buttons
+                const undoBtn = gameControls.querySelector('#undo-btn');
+                const redoBtn = gameControls.querySelector('#redo-btn');
+                const menuBtn = gameControls.querySelector('#menu-btn');
+                
+                if (undoBtn && this.game.undoMove) {
+                    undoBtn.addEventListener('click', this.game.undoMove.bind(this.game));
+                }
+                
+                if (redoBtn && this.game.redoMove) {
+                    redoBtn.addEventListener('click', this.game.redoMove.bind(this.game));
+                }
+                
+                if (menuBtn && this.game.ui && this.game.ui.openMenu) {
+                    menuBtn.addEventListener('click', this.game.ui.openMenu.bind(this.game.ui));
+                }
+            }
+            
+            // Clear the reference
+            this.originalGameControls = null;
         }
     }
     
@@ -325,12 +359,16 @@ class TutorialUIManager {
             this.tutorialOverlay.parentNode.removeChild(this.tutorialOverlay);
         }
         
+        // Restore original game controls
+        this.restoreGameControls();
+        
         // Reset references
         this.tutorialOverlay = null;
         this.messageBox = null;
         this.continueButton = null;
         this.skipButton = null;
         this.tryAgainButton = null;
+        this.tutorialControls = null;
         this.continueHandler = null;
         this.skipHandler = null;
         this.tryAgainHandler = null;
@@ -340,9 +378,6 @@ class TutorialUIManager {
         
         // Remove visual guidance
         this.clearVisualGuidance();
-        
-        // Restore game controls
-        this.restoreGameControls();
     }
     
     /**

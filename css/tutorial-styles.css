@@ -57,10 +57,8 @@
 
 /* Controls */
 .tutorial-controls {
-    position: absolute;
-    bottom: 30px;
-    right: 30px;
     display: flex;
+    justify-content: center;
     gap: 15px;
     pointer-events: auto;
     z-index: 51;

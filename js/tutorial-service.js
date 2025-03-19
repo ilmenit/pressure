@@ -31,6 +31,9 @@ class TutorialService {
         this.uiManager = new TutorialUIManager(this);
         this.stepManager = new TutorialStepManager(this);
         this.eventHandler = new TutorialEventHandler(this);
+        
+        // Track last move validity
+        this.lastMoveWasValid = false;
     }
     
     /**
@@ -52,6 +55,7 @@ class TutorialService {
         this.isActive = true;
         this.currentStepIndex = 0;
         this.state = 'STARTING';
+        this.lastMoveWasValid = false;
         
         // Thoroughly clear all existing board state
         this.clearAllBoardState();
@@ -235,8 +239,14 @@ class TutorialService {
                     // Clear highlights after any move
                     this.uiManager.clearHighlights();
                     
-                    // Mark that a move has been performed
-                    this.stepManager.movePerformed = true;
+                    // Track if the move was valid - important for handling token captures
+                    this.lastMoveWasValid = isValidMove;
+                    
+                    // Mark that a move has been performed, but only if it was valid
+                    // or if we're in the easier steps (1-2)
+                    if (isValidMove || this.currentStepIndex <= 1) {
+                        this.stepManager.movePerformed = true;
+                    }
                     
                     if (!isValidMove) {
                         // Show error and Try Again button
@@ -464,6 +474,7 @@ class TutorialService {
         // Update state
         this.currentStepIndex = stepIndex;
         this.state = 'WAITING_FOR_ACTION';
+        this.lastMoveWasValid = false;
         
         // Reset expected action index
         this.stepManager.resetExpectedAction();
@@ -685,7 +696,11 @@ class TutorialService {
     handleTokenCaptured(data) {
         if (this.state !== 'WAITING_FOR_ACTION') return;
         
-        this.stepManager.handleTokenCaptured(data);
+        // Only process capture events if the last move was valid or in step 1-2
+        if (this.lastMoveWasValid || this.currentStepIndex <= 1) {
+            this.stepManager.handleTokenCaptured(data);
+        }
+        // Otherwise ignore the capture event since it resulted from an invalid move
     }
 }
 

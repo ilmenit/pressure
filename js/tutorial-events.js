@@ -159,7 +159,8 @@ class TutorialEventHandler {
     handleTokenCaptured(data) {
         if (!this.tutorialService.isActive) return;
         
-        // Pass to tutorial service
+        // Pass to tutorial service only if last move was valid
+        // This will now be controlled by the tutorialService.handleTokenCaptured
         this.tutorialService.handleTokenCaptured(data);
         
         // Emit event

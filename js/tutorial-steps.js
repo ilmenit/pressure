@@ -131,7 +131,7 @@ class TutorialStepManager {
                     { row: 2, col: 1, color: 'black' },
                     { row: 2, col: 2, color: 'white' },
                     { row: 2, col: 3, color: 'black' }
-                    // Empty space at 2,3
+                    // Empty space at 2,4
                 ],
                 initialHighlights: [{ row: 2, col: 0 }],
                 expectedActions: [
