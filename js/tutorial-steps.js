@@ -66,14 +66,14 @@ class TutorialStepManager {
                 title: "Taking Turns",
                 instructions: "In Pressure, players take turns. Make a move with your white token.",
                 boardSetup: [
-                    { row: 2, col: 2, color: 'white' },
-                    { row: 1, col: 0, color: 'black' }
+                    { row: 2, col: 1, color: 'white' },
+                    { row: 4, col: 3, color: 'black' }
                 ],
-                initialHighlights: [{ row: 2, col: 2 }],
+                initialHighlights: [{ row: 2, col: 1 }],
                 expectedActions: [
                     {
                         type: 'select',
-                        position: { row: 2, col: 2 },
+                        position: { row: 2, col: 1 },
                         nextInstructions: "Select a destination for your token."
                     },
                     {

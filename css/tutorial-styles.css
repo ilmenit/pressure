@@ -88,11 +88,11 @@
 }
 
 #tutorial-continue-btn {
-    background-color: #2E7D32; /* Green color for continue button */
+    background-color: #4A6FA5;
 }
 
 #tutorial-continue-btn:hover {
-    background-color: #1B5E20;
+    background-color: #3A5A80;
 }
 
 #tutorial-skip-btn {
