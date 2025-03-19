@@ -79,36 +79,9 @@ class TutorialStepManager {
                         type: 'move',
                         nextInstructions: "Now the black player (AI) will take their turn.",
                         onComplete: function(tutorialService) {
-                            // Simulate AI move after a delay - using a single deterministic move
                             setTimeout(() => {
-                                // Use the black token positioned at (1,0)
-                                const blackTokenPos = { row: 1, col: 0 };
-                                
-                                // Move it one space down - (2,0)
-                                const moveDestination = { row: 2, col: 0 };
-                                
-                                // After a delay, move it
-                                tutorialService.board.moveToken(
-                                    blackTokenPos.row, 
-                                    blackTokenPos.col, 
-                                    moveDestination.row, 
-                                    moveDestination.col
-                                );
-                                tutorialService.board.renderBoard();
-                                
-                                // Show completion message
-                                setTimeout(() => {
-                                    tutorialService.uiManager.showInstructions(
-                                        "Taking Turns",
-                                        "Each player moves one token per turn. White always goes first.",
-                                        tutorialService.currentStepIndex + 1,
-                                        tutorialService.stepManager.getTotalSteps()
-                                    );
-                                    
-                                    // Show continue button
-                                    tutorialService.uiManager.showContinueButton();
-                                }, 1000);
-                            }, 1500);
+                                tutorialService.uiManager.showContinueButton();
+                            }, 1000);
                         }
                     }
                 ]
@@ -135,7 +108,6 @@ class TutorialStepManager {
                     {
                         type: 'move',
                         validDestinations: [{ row: 2, col: 2 }],
-                        validateDirection: 'right', // Validate specific direction
                         errorMessage: "Please push the black token to the right. Try again.",
                         nextInstructions: "Pushed opponent tokens become inactive for their next turn (marked with red dot).",
                         onComplete: function(tutorialService) {
@@ -157,7 +129,8 @@ class TutorialStepManager {
                 boardSetup: [
                     { row: 2, col: 0, color: 'white' },
                     { row: 2, col: 1, color: 'black' },
-                    { row: 2, col: 2, color: 'white' }
+                    { row: 2, col: 2, color: 'white' },
+                    { row: 2, col: 3, color: 'black' }
                     // Empty space at 2,3
                 ],
                 initialHighlights: [{ row: 2, col: 0 }],
@@ -171,9 +144,8 @@ class TutorialStepManager {
                     {
                         type: 'move',
                         validDestinations: [{ row: 2, col: 1 }],
-                        validateDirection: 'right', // Validate specific direction
                         errorMessage: "Please push the tokens to the right. Try again.",
-                        nextInstructions: "Only opponent tokens become inactive after being pushed. Your own tokens remain active.",
+                        nextInstructions: "Pushed opponent tokens become inactive after being pushed. Opponent cannot move them the next turn.",
                         onComplete: function(tutorialService) {
                             setTimeout(() => {
                                 tutorialService.uiManager.highlightInactiveToken();
@@ -188,7 +160,7 @@ class TutorialStepManager {
             {
                 id: "token-capture",
                 title: "Token Capture",
-                instructions: "When a token is surrounded on all four sides, it's captured. Move your token to the right of the black token to capture it.",
+                instructions: "When a token is surrounded on all four sides, it's captured. Move your token to surround the black token, to capture it.",
                 boardSetup: [
                     { row: 2, col: 1, color: 'white' }, // Left of target
                     { row: 1, col: 2, color: 'white' }, // Above target
@@ -201,21 +173,20 @@ class TutorialStepManager {
                     {
                         type: 'select',
                         position: { row: 2, col: 4 },
-                        nextInstructions: "Move to position (2,3) to capture the black token.",
+                        nextInstructions: "Move your token left to capture the black token.",
                         highlightPositions: [{ row: 2, col: 3 }]
                     },
                     {
                         type: 'move',
                         validDestinations: [{ row: 2, col: 3 }],
-                        validateDirection: 'left', // Validate specific direction
-                        errorMessage: "Please move to position (2,3) to complete the capture. Try again.",
+                        errorMessage: "Please move your token left to complete the capture. Try again.",
                         nextInstructions: "Captured tokens turn blue and cannot be moved directly, but they can still be pushed."
                     },
                     {
                         type: 'capture',
                         validateCapture: (data) => {
-                            return data.color === 'black' && 
-                                  data.position.row === 2 && 
+                            return data && data.color === 'black' && 
+                                  data.position && data.position.row === 2 && 
                                   data.position.col === 2;
                         },
                         nextInstructions: "Capturing all opponent tokens is one way to win the game.",
@@ -245,22 +216,20 @@ class TutorialStepManager {
                     {
                         type: 'select',
                         position: { row: 4, col: 3 },
-                        nextInstructions: "Move to position (4,2) to capture the black token using the board edge.",
+                        nextInstructions: "Move your token left to capture the black token using the board edge.",
                         highlightPositions: [{ row: 4, col: 2 }]
                     },
                     {
                         type: 'move',
-                        validateMove: (move) => {
-                            return move.to.row === 4 && move.to.col === 2;
-                        },
-                        errorMessage: "Please move to position (4,2) to complete the edge capture. Try again.",
+                        validDestinations: [{ row: 4, col: 2 }],
+                        errorMessage: "Please move your token left to complete the edge capture. Try again.",
                         nextInstructions: "Using the board edges makes capturing easier - only 3 tokens needed at an edge, and just 2 in a corner!"
                     },
                     {
                         type: 'capture',
                         validateCapture: (data) => {
-                            return data.color === 'black' && 
-                                  data.position.row === 4 && 
+                            return data && data.color === 'black' && 
+                                  data.position && data.position.row === 4 && 
                                   data.position.col === 1;
                         },
                         nextInstructions: "You completed an edge capture with fewer tokens!",
@@ -278,45 +247,45 @@ class TutorialStepManager {
             {
                 id: "victory-conditions",
                 title: "Victory Conditions",
-                instructions: "The goal is to win by capturing all opponent tokens. Try pushing multiple tokens upward to make the final capture.",
+                instructions: "To capture token you may also surround it with opponent tokens.",
                 boardSetup: [
                     // New setup for pushing tokens upward
                     { row: 4, col: 2, color: 'white' },  // Player's token at bottom
-                    { row: 3, col: 2, color: 'white' },  // Token above player
-                    { row: 2, col: 2, color: 'black' },  // Enemy token to capture
-                    { row: 1, col: 2, color: 'white' },  // Above black
-                    { row: 2, col: 1, color: 'white' },  // Left of black
-                    { row: 2, col: 3, color: 'white' },  // Right of black
+                    { row: 3, col: 2, color: 'black' },  // Token above player
+                    { row: 2, col: 2, color: 'black' },  // One more above
+                    { row: 1, col: 1, color: 'black' },  // Token to capture
+                    { row: 0, col: 1, color: 'white' },  // Above black
+                    { row: 1, col: 0, color: 'white' },  // Left of black
+                    { row: 2, col: 1, color: 'white' },  // Under of black
                 ],
                 initialHighlights: [{ row: 4, col: 2 }],
                 expectedActions: [
                     {
                         type: 'select',
                         position: { row: 4, col: 2 },
-                        nextInstructions: "Push upward to capture the black token and win the game.",
+                        nextInstructions: "Try pushing multiple tokens upward to make the final capture.",
                         highlightPositions: [{ row: 3, col: 2 }]
                     },
                     {
                         type: 'move',
-                        validateMove: (move) => {
-                            return move.to.row === 3 && move.to.col === 2;
-                        },
-                        validateDirection: 'up',
+                        validDestinations: [{ row: 3, col: 2 }],
                         errorMessage: "Please push upward. Try again.",
-                        nextInstructions: "You pushed multiple tokens to capture the black token!"
+                        nextInstructions: "You win the game when opponent has no tokens to move."
                     },
                     {
                         type: 'capture',
                         validateCapture: (data) => {
-                            return data.color === 'black';
+                            return data && data.color === 'black' &&
+                                  data.position && data.position.row === 1 &&
+                                  data.position.col === 1;
                         },
-                        nextInstructions: "Congratulations! You've captured the token and completed the tutorial!",
+                        nextInstructions: "Congratulations! You win the game when opponent has no tokens to move.\n\nTry Tournament Mode to challenge a series of AI opponents with increasing difficulty.",
                         onComplete: function(tutorialService) {
                             setTimeout(() => {
                                 tutorialService.uiManager.highlightCapturedToken();
                                 setTimeout(() => {
                                     tutorialService.showTutorialComplete();
-                                }, 1500);
+                                }, 3000);
                             }, 1000);
                         }
                     }
@@ -348,6 +317,8 @@ class TutorialStepManager {
     handleTokenSelected(data) {
         // Don't allow actions if move has already been performed
         if (this.movePerformed) return;
+        
+        if (!data || !data.position) return;
         
         const step = this.getStep(this.tutorialService.currentStepIndex);
         if (!step) return;
@@ -395,100 +366,14 @@ class TutorialStepManager {
     }
     
     /**
-     * Handle move execution
-     */
-    handleMoveExecuted(data) {
-        // Don't allow additional moves if one has already been performed
-        if (this.movePerformed) return;
-        
-        const step = this.getStep(this.tutorialService.currentStepIndex);
-        if (!step) return;
-        
-        const expectedAction = step.expectedActions[this.expectedActionIndex];
-        
-        // If we're not expecting a move, ignore this event
-        if (expectedAction.type !== 'move') {
-            return;
-        }
-        
-        // Mark that a move has been attempted - this prevents additional moves
-        this.movePerformed = true;
-        
-        // Validate the move
-        let isValidMove = true;
-        
-        // Check for direction validation
-        if (expectedAction.validateDirection) {
-            // Determine the actual direction of the move
-            const actualDirection = this.determineDirection(data.move.from, data.move.to);
-            isValidMove = (actualDirection === expectedAction.validateDirection);
-        }
-        // Validate using custom validation function if provided
-        else if (expectedAction.validateMove) {
-            isValidMove = expectedAction.validateMove(data.move);
-        } 
-        // Validate using validDestinations if provided
-        else if (expectedAction.validDestinations) {
-            isValidMove = expectedAction.validDestinations.some(pos => 
-                data.move.to.row === pos.row && data.move.to.col === pos.col
-            );
-        }
-        
-        // Clear all highlights immediately after any move
-        this.tutorialService.uiManager.clearHighlights();
-        
-        if (!isValidMove) {
-            // Wrong move - display an error message
-            const errorMessage = expectedAction.errorMessage || `Incorrect move. ${step.instructions}`;
-            
-            this.tutorialService.uiManager.showInstructions(
-                step.title,
-                errorMessage,
-                this.tutorialService.currentStepIndex + 1,
-                this.tutorialService.getTotalSteps()
-            );
-            
-            // Show try again button
-            this.tutorialService.uiManager.showTryAgainButton();
-            
-            // Mark as retrying
-            this.isRetrying = true;
-            
-            return;
-        }
-        
-        // Valid move - update instructions
-        if (expectedAction.nextInstructions) {
-            this.tutorialService.uiManager.showInstructions(
-                step.title, 
-                expectedAction.nextInstructions,
-                this.tutorialService.currentStepIndex + 1,
-                this.getTotalSteps()
-            );
-        }
-        
-        // Execute any after-completion logic
-        if (expectedAction.onComplete) {
-            expectedAction.onComplete(this.tutorialService);
-        }
-        
-        // If this completes the step, show continue button
-        if (expectedAction.completesStep) {
-            this.tutorialService.uiManager.showContinueButton();
-        } 
-        // Otherwise advance to next expected action if not handled by onComplete
-        else if (!expectedAction.onComplete) {
-            this.expectedActionIndex++;
-        }
-    }
-    
-    /**
      * Determine the direction of a move
      * @param {Object} from - The starting position {row, col}
      * @param {Object} to - The ending position {row, col}
      * @returns {string} The direction ('up', 'down', 'left', 'right')
      */
     determineDirection(from, to) {
+        if (!from || !to) return '';
+        
         if (from.row > to.row) return 'up';
         if (from.row < to.row) return 'down';
         if (from.col > to.col) return 'left';

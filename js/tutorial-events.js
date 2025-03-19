@@ -62,7 +62,11 @@ class TutorialEventHandler {
                 // Re-select the token after a brief delay
                 setTimeout(() => {
                     // Only re-select if still in tutorial mode and we still want to preserve selection
-                    if (this.tutorialService.isActive && this.tutorialService.isInSelectionMoveSequence()) {
+                    // Add null check for lastSelectedPosition to avoid potential errors
+                    if (this.tutorialService.isActive && 
+                        this.tutorialService.isInSelectionMoveSequence() &&
+                        this.lastSelectedPosition) {
+                        
                         const ui = this.game.ui;
                         if (ui && ui.selectToken) {
                             ui.selectToken(this.lastSelectedPosition.row, this.lastSelectedPosition.col);
@@ -80,13 +84,18 @@ class TutorialEventHandler {
         if (!this.events || !this.boundHandlers) return;
         
         // Remove all registered event listeners
-        this.events.off('ui:tokenSelected', this.boundHandlers.tokenSelected);
-        this.events.off('move:executed', this.boundHandlers.moveExecuted);
-        this.events.off('token:captured', this.boundHandlers.tokenCaptured);
-        this.events.off('ui:selectionCleared', this.boundHandlers.selectionCleared);
-        this.events.off('board:rendered', this.boundHandlers.boardRendered);
-        this.events.off('drag:started', this.boundHandlers.dragStarted);
-        this.events.off('drag:dropped', this.boundHandlers.dragDropped);
+        Object.keys(this.boundHandlers).forEach(eventName => {
+            const handler = this.boundHandlers[eventName];
+            if (handler) {
+                this.events.off(eventName, handler);
+            }
+        });
+        
+        // Clear handlers to help garbage collection
+        this.boundHandlers = {};
+        
+        // Clear last selected position
+        this.lastSelectedPosition = null;
     }
     
     /**
@@ -95,19 +104,25 @@ class TutorialEventHandler {
     handleTokenSelected(data) {
         if (!this.tutorialService.isActive) return;
         
-        // Store the last selected position for click-then-move pattern
-        this.lastSelectedPosition = data.position;
-        
-        // Pass to tutorial service
-        this.tutorialService.handleTokenSelected(data);
-        
-        // Emit event
-        if (this.events) {
-            this.events.emit('tutorial:actionPerformed', {
-                type: 'tokenSelected',
-                data: data,
-                timestamp: Date.now()
-            });
+        // Add null check for data and data.position before storing
+        if (data && data.position) {
+            // Create a copy of the position to avoid potential reference issues
+            this.lastSelectedPosition = {
+                row: data.position.row,
+                col: data.position.col
+            };
+            
+            // Pass to tutorial service
+            this.tutorialService.handleTokenSelected(data);
+            
+            // Emit event
+            if (this.events) {
+                this.events.emit('tutorial:actionPerformed', {
+                    type: 'tokenSelected',
+                    data: data,
+                    timestamp: Date.now()
+                });
+            }
         }
     }
     
@@ -120,8 +135,13 @@ class TutorialEventHandler {
         // Reset last selected position
         this.lastSelectedPosition = null;
         
-        // Pass to tutorial service
-        this.tutorialService.handleMoveExecuted(data);
+        // The actual move validation and execution happens in the executeMove override
+        // This handler is now mainly for event notification and cleanup
+        
+        // Clear highlights after any move
+        if (this.tutorialService.uiManager) {
+            this.tutorialService.uiManager.clearHighlights();
+        }
         
         // Emit event
         if (this.events) {
@@ -158,13 +178,21 @@ class TutorialEventHandler {
     handleSelectionCleared() {
         if (!this.tutorialService.isActive) return;
         
+        // Don't reapply highlights if move has already been performed
+        if (this.tutorialService.stepManager.movePerformed) {
+            return;
+        }
+        
         // If we're in a selection-move sequence, don't clear the selection
         if (this.lastSelectedPosition && this.tutorialService.isInSelectionMoveSequence()) {
             // Re-apply selection after a brief delay to let native events complete
             setTimeout(() => {
-                const ui = this.game.ui;
-                if (ui && ui.selectToken) {
-                    ui.selectToken(this.lastSelectedPosition.row, this.lastSelectedPosition.col);
+                // Add null check for lastSelectedPosition
+                if (this.lastSelectedPosition) {
+                    const ui = this.game.ui;
+                    if (ui && ui.selectToken) {
+                        ui.selectToken(this.lastSelectedPosition.row, this.lastSelectedPosition.col);
+                    }
                 }
             }, 50);
             return;
@@ -196,8 +224,15 @@ class TutorialEventHandler {
     handleBoardRendered() {
         if (!this.tutorialService.isActive) return;
         
-        // Reapply highlights after board renders
-        this.handleSelectionCleared();
+        // Reapply highlights after board renders if no move has been performed yet
+        if (!this.tutorialService.stepManager.movePerformed && 
+            this.tutorialService.state === 'WAITING_FOR_ACTION') {
+            
+            // Small delay to ensure the board has fully rendered
+            setTimeout(() => {
+                this.handleSelectionCleared();
+            }, 10);
+        }
     }
     
     /**
@@ -206,19 +241,25 @@ class TutorialEventHandler {
     handleDragStarted(data) {
         if (!this.tutorialService.isActive) return;
         
-        // Store last selected position for drag operations
-        this.lastSelectedPosition = data.position;
-        
-        // Similar to token selected
-        this.tutorialService.handleTokenSelected(data);
-        
-        // Emit event
-        if (this.events) {
-            this.events.emit('tutorial:actionPerformed', {
-                type: 'dragStarted',
-                data: data,
-                timestamp: Date.now()
-            });
+        // Add null check for data and data.position
+        if (data && data.position) {
+            // Create a copy of the position to avoid potential reference issues
+            this.lastSelectedPosition = {
+                row: data.position.row,
+                col: data.position.col
+            };
+            
+            // Similar to token selected
+            this.tutorialService.handleTokenSelected(data);
+            
+            // Emit event
+            if (this.events) {
+                this.events.emit('tutorial:actionPerformed', {
+                    type: 'dragStarted',
+                    data: data,
+                    timestamp: Date.now()
+                });
+            }
         }
     }
     

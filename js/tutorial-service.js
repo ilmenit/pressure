@@ -25,6 +25,7 @@ class TutorialService {
         this.originalGameOverHandler = null;
         this.originalUpdateStatus = null;
         this.originalGameStatusDisplay = null;
+        this.originalExecuteMove = null;
         
         // Load components
         this.uiManager = new TutorialUIManager(this);
@@ -141,6 +142,11 @@ class TutorialService {
             this.originalUpdateStatus = this.game.ui.updateStatus;
         }
         
+        // Save executeMove function - store it as a class property
+        if (this.game.ui && this.game.ui.executeMove) {
+            this.originalExecuteMove = this.game.ui.executeMove;
+        }
+        
         // No need to save game over handlers - we'll do that during override
         this.originalGameOverHandler = null;
         this.originalGameStatusDisplay = 'block'; // Default display value
@@ -160,16 +166,14 @@ class TutorialService {
         
         // Override end game function to prevent triggering win conditions
         if (this.game.endGame) {
-            this.originalEndGame = this.game.endGame;
             this.game.endGame = () => {};
         }
         
         // Make sure we disable the global gameOver event handling
-        if (this.events) {
+        if (this.events && this.events.listeners) {
             this.originalGameOverHandler = {};
-            const listeners = this.events.listeners || {};
-            if (listeners['game:over']) {
-                this.originalGameOverHandler['game:over'] = [...listeners['game:over']];
+            if (this.events.listeners['game:over']) {
+                this.originalGameOverHandler['game:over'] = [...this.events.listeners['game:over']];
                 this.events.listeners['game:over'] = [];
             }
         }
@@ -177,13 +181,115 @@ class TutorialService {
         // Ensure the game stays active throughout the tutorial
         this.game.isGameActive = true;
         
+        // Override executeMove to handle incorrect moves
+        if (this.game.ui && this.originalExecuteMove) {  // Check both conditions
+            this.game.ui.executeMove = (move) => {
+                // If tutorial not active, use original behavior
+                if (!this.isActive) {
+                    return this.originalExecuteMove.call(this.game.ui, move);
+                }
+                
+                // If not in the correct state, use original behavior
+                if (this.state !== 'WAITING_FOR_ACTION') {
+                    return this.originalExecuteMove.call(this.game.ui, move);
+                }
+                
+                // If the step manager is retrying or a move has already been performed, block all moves
+                if (this.stepManager.isRetrying || this.stepManager.movePerformed) {
+                    return;
+                }
+                
+                // Get current step and expected action
+                const step = this.stepManager.getStep(this.currentStepIndex);
+                if (!step) {
+                    return this.originalExecuteMove.call(this.game.ui, move);
+                }
+                
+                const expectedActionIndex = this.stepManager.expectedActionIndex;
+                if (expectedActionIndex >= step.expectedActions.length) {
+                    return this.originalExecuteMove.call(this.game.ui, move);
+                }
+                
+                const expectedAction = step.expectedActions[expectedActionIndex];
+                
+                // Only validate if we're expecting a move
+                if (expectedAction.type === 'move') {
+                    let isValidMove = true;
+                    
+                    // Steps 1 and 2 - any move is okay
+                    if (this.currentStepIndex <= 1) {
+                        isValidMove = true;
+                    } 
+                    // More specific validation for steps 3+
+                    else if (expectedAction.validateMove) {
+                        isValidMove = expectedAction.validateMove(move);
+                    } else if (expectedAction.validDestinations) {
+                        isValidMove = expectedAction.validDestinations.some(pos => 
+                            move.to.row === pos.row && move.to.col === pos.col
+                        );
+                    }
+                    
+                    // Execute the move regardless of validity
+                    this.originalExecuteMove.call(this.game.ui, move);
+                    
+                    // Clear highlights after any move
+                    this.uiManager.clearHighlights();
+                    
+                    // Mark that a move has been performed
+                    this.stepManager.movePerformed = true;
+                    
+                    if (!isValidMove) {
+                        // Show error and Try Again button
+                        const errorMessage = expectedAction.errorMessage || 
+                                          `Incorrect move. ${step.instructions}`;
+                        
+                        this.uiManager.showInstructions(
+                            step.title,
+                            errorMessage,
+                            this.currentStepIndex + 1,
+                            this.stepManager.getTotalSteps()
+                        );
+                        
+                        this.uiManager.showTryAgainButton();
+                        this.stepManager.isRetrying = true;
+                        return;
+                    }
+                    
+                    // Valid move - proceed with the tutorial
+                    if (expectedAction.nextInstructions) {
+                        this.uiManager.showInstructions(
+                            step.title,
+                            expectedAction.nextInstructions,
+                            this.currentStepIndex + 1,
+                            this.stepManager.getTotalSteps()
+                        );
+                    }
+                    
+                    // Execute any after-completion logic
+                    if (expectedAction.onComplete) {
+                        expectedAction.onComplete(this);
+                    }
+                    
+                    // If this completes the step, show continue button
+                    if (expectedAction.completesStep) {
+                        this.uiManager.showContinueButton();
+                    }
+                    
+                    return;
+                }
+                
+                // If not handling a move action, use original behavior
+                this.originalExecuteMove.call(this.game.ui, move);
+            };
+        }
+        
         // Override clear selection to maintain token selection during tutorial
         if (this.game.ui) {
             const originalClearSelection = this.game.ui.clearSelection;
             this.game.ui.clearSelection = () => {
                 // Only run clear selection if we're not in the middle of a tutorial step
                 // that requires keeping selection active
-                if (!this.isInSelectionMoveSequence()) {
+                if (!this.isActive || !this.isInSelectionMoveSequence()) {
                     originalClearSelection.call(this.game.ui);
                 }
             };
@@ -239,8 +345,9 @@ class TutorialService {
         
         // Restore game over event handlers
         if (this.events && this.originalGameOverHandler) {
+            if (!this.events.listeners) this.events.listeners = {};
+            
             Object.keys(this.originalGameOverHandler).forEach(eventName => {
-                if (!this.events.listeners) this.events.listeners = {};
                 this.events.listeners[eventName] = this.originalGameOverHandler[eventName];
             });
             this.originalGameOverHandler = null;
@@ -256,6 +363,12 @@ class TutorialService {
         if (this.originalUpdateStatus && this.game.ui) {
             this.game.ui.updateStatus = this.originalUpdateStatus;
             this.originalUpdateStatus = null;
+        }
+        
+        // Restore executeMove
+        if (this.originalExecuteMove && this.game.ui) {
+            this.game.ui.executeMove = this.originalExecuteMove;
+            this.originalExecuteMove = null;
         }
         
         // Restore status text visibility
@@ -537,6 +650,9 @@ class TutorialService {
             this.board.restoreFromCopy(this.originalGameState.grid);
         }
         
+        // Thoroughly clean up all tutorial UI elements and classes
+        this.uiManager.cleanupTutorialUI();
+        
         // Update UI
         this.board.renderBoard();
         if (this.game.ui) {
@@ -559,7 +675,8 @@ class TutorialService {
     handleMoveExecuted(data) {
         if (this.state !== 'WAITING_FOR_ACTION') return;
         
-        this.stepManager.handleMoveExecuted(data);
+        // The actual move handling is now done in the executeMove override
+        // This method remains for event handling compatibility
     }
     
     /**
