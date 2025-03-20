@@ -255,18 +255,38 @@ h3 {
     max-width: 300px;
 }
 
-/* Game Screen */
+/* Game Screen - FIXED LAYOUT */
 #game-screen {
-    z-index: 1;
-    justify-content: space-between;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
 }
 
+/* Fixed header at top */
+#game-screen h1 {
+    margin: 10px 0;
+    width: 100%;
+    text-align: center;
+    z-index: 3;
+}
+
+/* Board container with absolute positioning */
 .board-container {
-    flex: 1;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(90vw, 500px);
+    height: min(90vw, 500px);
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
+    z-index: 1;
 }
 
 .board {
@@ -350,13 +370,36 @@ h3 {
     pointer-events: none;
 }
 
+/* Game status positioned at the bottom with fixed height */
+.game-status {
+    position: absolute;
+    bottom: 70px; /* Space for controls below */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 500px;
+    min-height: 60px; /* Fixed height to prevent layout shifts */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #1E1E1E;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px 15px;
+    box-sizing: border-box;
+    z-index: 2;
+}
+
+/* Controls at the bottom */
 .game-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     gap: 15px;
-    padding: 15px;
-    width: 100%;
-    max-width: 500px;
-    justify-content: center;
+    padding: 10px 0;
+    z-index: 2;
 }
 
 /* FIXED: Changed the default button style to match other buttons (blue) */
@@ -664,6 +707,17 @@ h3 {
     }
 }
 
+/* Game screen responsive adjustments */
+@media (max-height: 600px) {
+    .game-status {
+        bottom: 60px;
+    }
+    
+    .game-controls {
+        bottom: 5px;
+    }
+}
+
 /* Styling for the token with arrow indicator */
 .token-with-arrow {
     position: relative;
@@ -779,26 +833,6 @@ h3 {
     .mode-buttons .large-btn {
         padding-left: 10px;
     }
-}
-
-/* Game Status Area */
-.game-status {
-    width: 100%;
-    max-width: 500px;
-    text-align: center;
-    padding: 10px 15px;
-    margin: 10px 0;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 1.1rem;
-    min-height: 24px;
-    background-color: #1E1E1E;
-    border: 1px solid #333;
-}
-
-#status-text {
-    display: inline-flex;
-    align-items: center;
 }
 
 /* Status state classes */
@@ -1195,4 +1229,12 @@ h3 {
         height: 36px;
         font-size: 20px;
     }
+}
+
+/* Status text style */
+#status-text {
+    line-height: 1.3;
+    text-align: center;
+    width: 100%;
+    overflow-wrap: break-word;
 }
