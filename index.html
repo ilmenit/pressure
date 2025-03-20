@@ -64,58 +64,69 @@
         .ai-thinking-indicator {
             display: none !important;
         }
-        
-        /* Menu Icon Styles */
-        .menu-icon {
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
-            border-radius: 50%;
-            background-color: #4A6FA5;
-            margin-right: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-        
-        .mode-buttons .large-btn {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            padding-left: 15px;
-            margin-bottom: 15px;
-        }
     </style>
 </head>
 <body>
-    <!-- Main Menu Screen (New) -->
-    <div id="main-menu" class="screen">
-        <h1>Pressure</h1>
-        <div class="mode-buttons">
-            <button id="tournament-mode-btn" class="large-btn">
-                <div class="menu-icon">🏆</div>
-                <span>Tournament Mode</span>
-            </button>
-            <button id="standard-mode-btn" class="large-btn">
-                <div class="menu-icon">🎭</div>
-                <span>One on One Game</span>
-            </button>
-            <button id="read-rules-btn" class="large-btn">
-                <div class="menu-icon">📖</div>
-                <span>Read Game Rules</span>
-            </button>
-            <button id="tutorial-mode-btn" class="large-btn">
-                <div class="menu-icon">📚</div>
-                <span>Tutorial</span>
-            </button>
-            <button id="tournament-settings-btn" class="large-btn">
-                <div class="menu-icon">⚙️</div>
-                <span>Tournament Settings</span>
-            </button>
-        </div>
-    </div>
-
+<!-- Main Menu Screen (Grid Layout) -->
+	<div id="main-menu" class="screen">
+		<h1>Pressure</h1>
+		<div class="menu-grid">
+			<div class="menu-row">
+				<div class="menu-cell icon-cell">
+					<div class="menu-icon-container">
+						<img src="assets/icons/tournament.webp" alt="Tournament" class="menu-icon-img">
+					</div>
+				</div>
+				<div class="menu-cell button-cell">
+					<button id="tournament-mode-btn" class="large-btn">Tournament Mode</button>
+				</div>
+			</div>
+			
+			<div class="menu-row">
+				<div class="menu-cell icon-cell">
+					<div class="menu-icon-container">
+						<img src="assets/icons/duel.webp" alt="One on One Game" class="menu-icon-img">
+					</div>
+				</div>
+				<div class="menu-cell button-cell">
+					<button id="standard-mode-btn" class="large-btn">One on One Game</button>
+				</div>
+			</div>
+			
+			<div class="menu-row">
+				<div class="menu-cell icon-cell">
+					<div class="menu-icon-container">
+						<img src="assets/icons/rules.webp" alt="Rules" class="menu-icon-img">
+					</div>
+				</div>
+				<div class="menu-cell button-cell">
+					<button id="read-rules-btn" class="large-btn">Read Game Rules</button>
+				</div>
+			</div>
+			
+			<div class="menu-row">
+				<div class="menu-cell icon-cell">
+					<div class="menu-icon-container">
+						<img src="assets/icons/tutorial.webp" alt="Tutorial" class="menu-icon-img">
+					</div>
+				</div>
+				<div class="menu-cell button-cell">
+					<button id="tutorial-mode-btn" class="large-btn">Tutorial</button>
+				</div>
+			</div>
+			
+			<div class="menu-row">
+				<div class="menu-cell icon-cell">
+					<div class="menu-icon-container">
+						<img src="assets/icons/settings.webp" alt="Settings" class="menu-icon-img">
+					</div>
+				</div>
+				<div class="menu-cell button-cell">
+					<button id="tournament-settings-btn" class="large-btn">Settings</button>
+				</div>
+			</div>
+		</div>
+	</div>
     <!-- Standard Game Setup (Renamed from original menu-screen) -->
     <div id="standard-setup" class="screen hidden">
         <h1>Standard Game</h1>
@@ -405,146 +416,147 @@
     </div>
         
     <!-- Original menu screen (kept for compatibility) -->
-    <div id="menu-screen" class="screen hidden">
-        <h1>Pressure</h1>
-            
-        <div class="menu-content">
-            <div class="menu-left">
-                <h2>Players</h2>
-                <div class="player-select">
-                    <div class="player-control">
-                        <span class="player-label">White Player:</span>
-                        <div class="player-options">
-                            <button class="player-type-btn active" data-player="white" data-type="human">Human</button>
-                            <button class="player-type-btn" data-player="white" data-type="ai">AI</button>
-                        </div>
-                        <div class="ai-level-container white-ai-levels hidden">
-                            <div class="ai-level-selection">
-                                <span class="ai-level-label">Beginner</span>
-                                <div class="ai-level-buttons">
-                                    <button class="ai-level-btn" data-player="white" data-level="1">1</button>
-                                    <button class="ai-level-btn" data-player="white" data-level="2">2</button>
-                                    <button class="ai-level-btn" data-player="white" data-level="3">3</button>
-                                    <button class="ai-level-btn" data-player="white" data-level="4">4</button>
-                                    <button class="ai-level-btn active" data-player="white" data-level="5">5</button>
-                                    <button class="ai-level-btn" data-player="white" data-level="6">6</button>
-                                    <button class="ai-level-btn" data-player="white" data-level="7">7</button>
-                                    <button class="ai-level-btn" data-player="white" data-level="8">8</button>
-                                    <button class="ai-level-btn" data-player="white" data-level="9">9</button>
-                                </div>
-                                <span class="ai-level-label">Expert</span>
+<div id="menu-screen" class="screen hidden">
+    <h1>Pressure</h1>
+        
+    <div class="menu-content">
+        <div class="menu-left">
+            <h2>Players</h2>
+            <div class="player-select">
+                <div class="player-control">
+                    <span class="player-label">White Player:</span>
+                    <div class="player-options">
+                        <button class="player-type-btn active" data-player="white" data-type="human">Human</button>
+                        <button class="player-type-btn" data-player="white" data-type="ai">AI</button>
+                    </div>
+                    <div class="ai-level-container white-ai-levels hidden">
+                        <div class="ai-level-selection">
+                            <span class="ai-level-label">Beginner</span>
+                            <div class="ai-level-buttons">
+                                <button class="ai-level-btn" data-player="white" data-level="1">1</button>
+                                <button class="ai-level-btn" data-player="white" data-level="2">2</button>
+                                <button class="ai-level-btn" data-player="white" data-level="3">3</button>
+                                <button class="ai-level-btn" data-player="white" data-level="4">4</button>
+                                <button class="ai-level-btn active" data-player="white" data-level="5">5</button>
+                                <button class="ai-level-btn" data-player="white" data-level="6">6</button>
+                                <button class="ai-level-btn" data-player="white" data-level="7">7</button>
+                                <button class="ai-level-btn" data-player="white" data-level="8">8</button>
+                                <button class="ai-level-btn" data-player="white" data-level="9">9</button>
                             </div>
+                            <span class="ai-level-label">Expert</span>
                         </div>
                     </div>
-                    
-                    <div class="player-control">
-                        <span class="player-label">Black Player:</span>
-                        <div class="player-options">
-                            <button class="player-type-btn" data-player="black" data-type="human">Human</button>
-                            <button class="player-type-btn active" data-player="black" data-type="ai">AI</button>
-                        </div>
-                        <div class="ai-level-container black-ai-levels">
-                            <div class="ai-level-selection">
-                                <span class="ai-level-label">Beginner</span>
-                                <div class="ai-level-buttons">
-                                    <button class="ai-level-btn active" data-player="black" data-level="1">1</button>
-                                    <button class="ai-level-btn" data-player="black" data-level="2">2</button>
-                                    <button class="ai-level-btn" data-player="black" data-level="3">3</button>
-                                    <button class="ai-level-btn" data-player="black" data-level="4">4</button>
-                                    <button class="ai-level-btn" data-player="black" data-level="5">5</button>
-                                    <button class="ai-level-btn" data-player="black" data-level="6">6</button>
-                                    <button class="ai-level-btn" data-player="black" data-level="7">7</button>
-                                    <button class="ai-level-btn" data-player="black" data-level="8">8</button>
-                                    <button class="ai-level-btn" data-player="black" data-level="9">9</button>
-                                </div>
-                                <span class="ai-level-label">Expert</span>
-                            </div>
-                        </div>
-                    </div>
+                </div>
                 
-                    <div class="menu-buttons">
-                        <button id="start-game-btn" class="large-btn">Start New Game</button>
-                        <button id="resume-game-btn" class="large-btn hidden">Resume Game</button>
+                <div class="player-control">
+                    <span class="player-label">Black Player:</span>
+                    <div class="player-options">
+                        <button class="player-type-btn" data-player="black" data-type="human">Human</button>
+                        <button class="player-type-btn active" data-player="black" data-type="ai">AI</button>
                     </div>
+                    <div class="ai-level-container black-ai-levels">
+                        <div class="ai-level-selection">
+                            <span class="ai-level-label">Beginner</span>
+                            <div class="ai-level-buttons">
+                                <button class="ai-level-btn active" data-player="black" data-level="1">1</button>
+                                <button class="ai-level-btn" data-player="black" data-level="2">2</button>
+                                <button class="ai-level-btn" data-player="black" data-level="3">3</button>
+                                <button class="ai-level-btn" data-player="black" data-level="4">4</button>
+                                <button class="ai-level-btn" data-player="black" data-level="5">5</button>
+                                <button class="ai-level-btn" data-player="black" data-level="6">6</button>
+                                <button class="ai-level-btn" data-player="black" data-level="7">7</button>
+                                <button class="ai-level-btn" data-player="black" data-level="8">8</button>
+                                <button class="ai-level-btn" data-player="black" data-level="9">9</button>
+                            </div>
+                            <span class="ai-level-label">Expert</span>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="menu-buttons">
+                    <button id="start-game-btn" class="large-btn">Start New Game</button>
+                    <button id="resume-game-btn" class="large-btn hidden">Resume Game</button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Game Screen (Modified to add opponent display) -->
-    <div id="game-screen" class="screen hidden">
-        <h1>Pressure</h1>
-        
-        <!-- Tournament opponent display (hidden in standard mode) -->
-        <div id="opponent-display" class="hidden">
-            <img id="opponent-portrait" src="" alt="Opponent">
-            <div id="opponent-info"></div>
-        </div>
-        
-        <!-- Commentary bubble for tournament mode -->
-        <div id="commentary-box" class="commentary-bubble"></div>
-        
-        <!-- Tournament retry button (shown when player loses in tournament) -->
-        <button id="tournament-retry-btn" class="tournament-retry-btn hidden">Try Again</button>
-        
-        <div class="board-container">
-            <div class="board">
-                <!-- Board grid will be created by JavaScript -->
-            </div>
-        </div>
-        
-        <!-- Game status area - IMPORTANT for displaying AI status -->
-        <div id="game-status" class="game-status status-normal">
-            <span id="status-text">White turn. Select piece to move.</span>
-        </div>
-        
-        <div class="game-controls">
-            <button id="undo-btn">Undo</button>
-            <button id="redo-btn">Redo</button>
-            <button id="menu-btn">Menu</button>
-        </div>
-    </div>
-    
-    <!-- Win Modal -->
-    <div id="win-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2 id="win-modal-title">Game Over</h2>
-            <p id="win-modal-message"></p>
-            <div class="modal-buttons">
-                <button id="win-modal-undo">Undo Last Move</button>
-                <button id="win-modal-menu">Return to Menu</button>
-            </div>
-        </div>
-    </div>
+</div>
 
-    <!-- Event System must be loaded first as other scripts depend on it -->
-    <script src="js/event-system.js"></script>
+<!-- Game Screen (Modified to add opponent display) -->
+<div id="game-screen" class="screen hidden">
+    <h1>Pressure</h1>
     
-    <!-- Load core game components -->
-    <script src="js/board.js"></script>
-    <script src="js/moves.js"></script>
-    <script src="js/gamestate.js"></script>
-    <script src="js/ai.js"></script>
-    <script src="js/game.js"></script>
+    <!-- Tournament opponent display (hidden in standard mode) -->
+    <div id="opponent-display" class="hidden">
+        <img id="opponent-portrait" src="" alt="Opponent">
+        <div id="opponent-info"></div>
+    </div>
     
-    <!-- UI components -->
-    <script src="js/ui-status-manager.js"></script>
-    <script src="js/ui-drag-handler.js"></script>
-    <script src="js/ui-manager.js"></script>
+    <!-- Commentary bubble for tournament mode -->
+    <div id="commentary-box" class="commentary-bubble"></div>
     
-    <!-- Tournament components -->
-    <script src="js/tournament-opponents.js"></script>
-    <script src="js/tournament-manager.js"></script>
-    <script src="js/tournament-service.js"></script>
+    <!-- Tournament retry button (shown when player loses in tournament) -->
+    <button id="tournament-retry-btn" class="tournament-retry-btn hidden">Try Again</button>
     
-    <!-- Extensions -->
-    <script src="js/game-extension.js"></script>
-    <script src="js/tutorial-service.js"></script>
-    <script src="js/tutorial-steps.js"></script>
-    <script src="js/tutorial-ui.js"></script>
-    <script src="js/tutorial-events.js"></script>
-    <script src="js/tutorial-setup.js"></script>    
-    <!-- Main entry point - must be loaded last -->
-    <script src="js/index.js"></script>
+    <div class="board-container">
+        <div class="board">
+            <!-- Board grid will be created by JavaScript -->
+        </div>
+    </div>
+    
+    <!-- Game status area - IMPORTANT for displaying AI status -->
+    <div id="game-status" class="game-status status-normal">
+        <span id="status-text">White turn. Select piece to move.</span>
+    </div>
+    
+    <div class="game-controls">
+        <button id="undo-btn">Undo</button>
+        <button id="redo-btn">Redo</button>
+        <button id="menu-btn">Menu</button>
+    </div>
+</div>
+
+<!-- Win Modal -->
+<div id="win-modal" class="modal hidden">
+    <div class="modal-content">
+        <h2 id="win-modal-title">Game Over</h2>
+        <p id="win-modal-message"></p>
+        <div class="modal-buttons">
+            <button id="win-modal-undo">Undo Last Move</button>
+            <button id="win-modal-menu">Return to Menu</button>
+        </div>
+    </div>
+</div>
+
+<!-- Event System must be loaded first as other scripts depend on it -->
+<script src="js/event-system.js"></script>
+
+<!-- Load core game components -->
+<script src="js/board.js"></script>
+<script src="js/moves.js"></script>
+<script src="js/gamestate.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/game.js"></script>
+
+<!-- UI components -->
+<script src="js/ui-status-manager.js"></script>
+<script src="js/ui-drag-handler.js"></script>
+<script src="js/ui-manager.js"></script>
+
+<!-- Tournament components -->
+<script src="js/tournament-opponents.js"></script>
+<script src="js/tournament-manager.js"></script>
+<script src="js/tournament-service.js"></script>
+
+<!-- Extensions -->
+<script src="js/game-extension.js"></script>
+<script src="js/tutorial-service.js"></script>
+<script src="js/tutorial-steps.js"></script>
+<script src="js/tutorial-ui.js"></script>
+<script src="js/tutorial-events.js"></script>
+<script src="js/tutorial-setup.js"></script>    
+<!-- Main entry point - must be loaded last -->
+<script src="js/index.js"></script>
+
 </body>
 </html>

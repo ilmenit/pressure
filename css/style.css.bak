@@ -1112,6 +1112,22 @@ h3 {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Hover Effects */
+.menu-row:hover .menu-icon-container {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.menu-row:hover .large-btn {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Hide old menu icons for backward compatibility */
+.menu-icon {
+    display: none;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 600px) {
     .menu-grid {
