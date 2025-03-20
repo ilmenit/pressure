@@ -255,38 +255,43 @@ h3 {
     max-width: 300px;
 }
 
-/* Game Screen - FIXED LAYOUT */
+/* Game Screen */
 #game-screen {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100%;
-    width: 100%;
-    padding: 0;
-    overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "header"
+    "board"
+    "status"
+    "controls";
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-items: center;
+  padding: 10px 0;
+  box-sizing: border-box;
+  gap: 10px;
+  overflow: hidden;
 }
 
-/* Fixed header at top */
+/* Game screen header */
 #game-screen h1 {
-    margin: 10px 0;
-    width: 100%;
-    text-align: center;
-    z-index: 3;
+  grid-area: header;
+  margin: 10px 0;
+  width: 100%;
+  text-align: center;
 }
 
-/* Board container with absolute positioning */
+/* Board container */
 .board-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(90vw, 500px);
-    height: min(90vw, 500px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1;
+  grid-area: board;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-self: center;
+  overflow: visible;
 }
 
 .board {
@@ -301,6 +306,7 @@ h3 {
     max-width: min(90vmin, 500px);
     max-height: min(90vmin, 500px);
     width: 100%;
+    height: auto;
 }
 
 .cell {
@@ -370,36 +376,42 @@ h3 {
     pointer-events: none;
 }
 
-/* Game status positioned at the bottom with fixed height */
+/* Game status with fixed height */
 .game-status {
-    position: absolute;
-    bottom: 70px; /* Space for controls below */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    max-width: 500px;
-    min-height: 60px; /* Fixed height to prevent layout shifts */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #1E1E1E;
-    border: 1px solid #333;
-    border-radius: 4px;
-    padding: 10px 15px;
-    box-sizing: border-box;
-    z-index: 2;
+  grid-area: status;
+  width: 90%;
+  max-width: 500px;
+  min-height: 60px;
+  padding: 10px 15px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1E1E1E;
+  border: 1px solid #333;
+  border-radius: 4px;
+  box-sizing: border-box;
+  /* This prevents layout shift when content changes */
+  overflow-y: auto;
 }
 
-/* Controls at the bottom */
+/* Status text style */
+#status-text {
+  line-height: 1.3;
+  text-align: center;
+  width: 100%;
+  overflow-wrap: break-word;
+}
+
+/* Game controls */
 .game-controls {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 15px;
-    padding: 10px 0;
-    z-index: 2;
+  grid-area: controls;
+  display: flex;
+  gap: 15px;
+  padding: 10px 0;
+  width: 90%;
+  max-width: 500px;
+  justify-content: center;
 }
 
 /* FIXED: Changed the default button style to match other buttons (blue) */
@@ -709,13 +721,45 @@ h3 {
 
 /* Game screen responsive adjustments */
 @media (max-height: 600px) {
-    .game-status {
-        bottom: 60px;
-    }
-    
-    .game-controls {
-        bottom: 5px;
-    }
+  /* Adjust for landscape orientation */
+  #game-screen {
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    gap: 5px;
+    padding: 5px 0;
+  }
+  
+  .game-status {
+    min-height: 40px;
+    padding: 5px 10px;
+    font-size: 0.9rem;
+  }
+  
+  .game-controls button {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+  }
+  
+  #game-screen h1 {
+    margin: 5px 0;
+    font-size: 1.5rem;
+  }
+}
+
+/* Very small screens */
+@media (max-height: 500px) {
+  #game-screen {
+    gap: 2px;
+  }
+  
+  #game-screen h1 {
+    font-size: 1.3rem;
+    margin: 2px 0;
+  }
+  
+  .game-status {
+    min-height: 35px;
+    padding: 5px;
+  }
 }
 
 /* Styling for the token with arrow indicator */
@@ -1229,12 +1273,4 @@ h3 {
         height: 36px;
         font-size: 20px;
     }
-}
-
-/* Status text style */
-#status-text {
-    line-height: 1.3;
-    text-align: center;
-    width: 100%;
-    overflow-wrap: break-word;
 }
