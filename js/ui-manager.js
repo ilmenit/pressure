@@ -604,6 +604,11 @@ class UIManager {
 // Extend the Board's renderBoard method to update draggable tokens
 const originalRenderBoard = Board.prototype.renderBoard;
 Board.prototype.renderBoard = function() {
+    // CRITICAL FIX: Skip everything during simulation
+    if (this.events && this.events.isInSimulation()) {
+        return; // Skip the entire rendering process during simulation
+    }
+    
     // Call original method
     originalRenderBoard.call(this);
     

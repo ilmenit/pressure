@@ -142,19 +142,24 @@ class EventSystem {
     emit(event, data = {}) {
         if (!this.listeners[event]) return;
         
-        // Skip adding simulation props to simulation control events to avoid infinite recursion
-        const isSimulationControlEvent = event === 'simulation:begin' || 
-                                         event === 'simulation:end';
+        // ROBUST FIX: During simulation, only allow simulation control events and "simulation:*" events
+        const isSimulationControlEvent = event === 'simulation:begin' || event === 'simulation:end' || event.startsWith('simulation:');
+        const isInSimulation = this.isInSimulation();
+        
+        // Early return: Skip emitting ALL events during simulation except simulation control events
+        // This is the crucial fix that prevents cascading UI updates during AI evaluation
+        if (isInSimulation && !isSimulationControlEvent) {
+            return; // Don't emit any events during simulation except simulation control events
+        }
         
         // Add simulation context to event data as non-enumerable properties
-        // so they don't interfere with iteration or JSON.stringify
         const eventData = { ...data };
         
         if (!isSimulationControlEvent || eventData._simulated === false) {
             // Only add these if not already defined
             if (!('_simulated' in eventData)) {
                 Object.defineProperty(eventData, '_simulated', {
-                    value: this.isInSimulation(),
+                    value: isInSimulation,
                     enumerable: false 
                 });
             }
@@ -178,7 +183,7 @@ class EventSystem {
             // Only log if not a simulation events (to avoid noise)
             if (event !== 'simulation:begin' && event !== 'simulation:end') {
                 console.log(`Event emitted: ${event}`, 
-                            `(simulated: ${this.isInSimulation()})`, 
+                            `(simulated: ${isInSimulation})`, 
                             eventData);
             }
         }
