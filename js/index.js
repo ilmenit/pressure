@@ -7,11 +7,138 @@ let game = null;
 let tournamentManager = null;
 let events = null;
 
+// Flag to track if tutorial has been shown in this session
+let tutorialShownThisSession = false;
+
+/**
+ * Check if the tutorial has been seen before
+ * @returns {boolean} True if tutorial has been seen, false otherwise
+ */
+function hasTutorialBeenSeen() {
+    // If tutorial was already shown in this session, don't show it again
+    if (tutorialShownThisSession) {
+        return true;
+    }
+    
+    try {
+        return localStorage.getItem('pressure_tutorial_seen') === 'true';
+    } catch (e) {
+        console.error("Error accessing localStorage:", e);
+        return true; // Fallback to assuming tutorial has been seen
+    }
+}
+
+/**
+ * Mark the tutorial as seen
+ * @param {string} reason - Why the tutorial was marked as seen
+ */
+function markTutorialAsSeen(reason = 'completed') {
+    // Set session flag
+    tutorialShownThisSession = true;
+    
+    try {
+        localStorage.setItem('pressure_tutorial_seen', 'true');
+        console.log(`Tutorial marked as seen (${reason})`);
+    } catch (e) {
+        console.error("Error setting tutorial seen flag:", e);
+    }
+}
+
+/**
+ * Directly attach skip/back button handlers to tutorial
+ */
+function attachTutorialButtonHandlers() {
+    // Try to find the skip tutorial button and attach a handler
+    setTimeout(() => {
+        const skipBtn = document.getElementById('tutorial-skip-btn');
+        if (skipBtn) {
+            // Add our own click handler that marks tutorial as seen
+            skipBtn.addEventListener('click', function() {
+                console.log("Tutorial skip button clicked");
+                markTutorialAsSeen('skip-button-clicked');
+            });
+        }
+        
+        // Also try to find any "back to menu" buttons that might be in the tutorial
+        const backButtons = document.querySelectorAll('button:not([id])');
+        backButtons.forEach(btn => {
+            if (btn.textContent && 
+                (btn.textContent.includes('Back to Menu') || 
+                 btn.textContent.includes('Main Menu'))) {
+                btn.addEventListener('click', function() {
+                    console.log("Back to menu button clicked in tutorial");
+                    markTutorialAsSeen('back-button-clicked');
+                });
+            }
+        });
+    }, 1000); // Give time for tutorial UI to be created
+}
+
+/**
+ * Check and possibly auto-start the tutorial for first-time players
+ * @returns {boolean} True if tutorial was started, false otherwise
+ */
+function checkAndAutoStartTutorial() {
+    // Only auto-start tutorial for first-time players
+    if (!hasTutorialBeenSeen()) {
+        // Check if tutorial function is available
+        if (typeof window.startTutorial === 'function') {
+            console.log("First-time player detected. Auto-starting tutorial...");
+            
+            // Mark as shown this session immediately
+            tutorialShownThisSession = true;
+            
+            // Use a small delay to ensure everything is initialized
+            setTimeout(() => {
+                // Start the tutorial
+                window.startTutorial();
+                
+                // Attach direct handlers to tutorial buttons
+                attachTutorialButtonHandlers();
+                
+                // Set up a fallback to ensure the flag is set
+                setTimeout(() => {
+                    // If after 30 seconds we're back at the main menu, mark tutorial as seen
+                    const mainMenu = document.getElementById('main-menu');
+                    if (mainMenu && !mainMenu.classList.contains('hidden')) {
+                        markTutorialAsSeen('timeout-at-main-menu');
+                    }
+                }, 30000);
+            }, 100);
+            
+            return true; // Tutorial started
+        } else {
+            console.error("Tutorial service not available");
+            // Mark as seen to avoid getting stuck if tutorial is unavailable
+            markTutorialAsSeen('service-unavailable');
+        }
+    }
+    
+    return false; // Tutorial not started
+}
+
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     // First, initialize the event system
     events = window.gameEvents || new EventSystem();
     window.gameEvents = events; // Ensure global access
+    
+    // Set up event listeners for tutorial events
+    events.on('tutorial:completed', () => {
+        console.log("Tutorial completed event received");
+        markTutorialAsSeen('completed-event');
+    });
+    
+    events.on('tutorial:skipped', () => {
+        console.log("Tutorial skipped event received");
+        markTutorialAsSeen('skipped-event');
+    });
+    
+    // Set up additional event to catch tutorial completion
+    events.on('ui:menuOpened', () => {
+        console.log("Menu opened event received");
+        markTutorialAsSeen('menu-opened');
+    });
     
     // Reference the existing game instance or create new one
     if (window.game) {
@@ -35,8 +162,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up event listeners for game events
     setupGameEventListeners();
     
-    // Show main menu immediately
-    showMainMenu();
+    // Check if we should auto-start the tutorial for first-time players
+    const tutorialStarted = checkAndAutoStartTutorial();
+    
+    // Only show main menu if tutorial didn't start
+    if (!tutorialStarted) {
+        showMainMenu();
+    }
     
     // Set default player settings - Black player should be AI with level 1
     setDefaultPlayerSettings();
@@ -114,6 +246,8 @@ function setupMainMenuListeners() {
             // Start tutorial directly (function defined in tutorial-service.js)
             if (typeof window.startTutorial === 'function') {
                 window.startTutorial();
+                // Mark tutorial as shown in this session to prevent auto-restart
+                tutorialShownThisSession = true;
             } else {
                 console.error("Tutorial service not loaded");
                 alert("Tutorial mode will be available in a future update.");
@@ -289,6 +423,10 @@ function setupMainMenuListeners() {
 function showMainMenu() {
     // First hide ALL screens completely
     hideAllScreens();
+    
+    // Mark tutorial as seen when main menu is shown
+    // This ensures the tutorial won't start again if skipped
+    markTutorialAsSeen('main-menu-shown');
     
     // Then show the main menu
     const mainMenu = document.getElementById('main-menu');
