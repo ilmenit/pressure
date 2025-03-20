@@ -1,7 +1,7 @@
 /**
  * Tournament Manager for Pressure game
  * Handles tournament progression and character interactions
- * Refactored to use event-driven architecture
+ * Refactored to use event-driven architecture with simulation filtering
  */
 class TournamentManager {
     constructor(game) {
@@ -26,15 +26,15 @@ class TournamentManager {
      * Set up event listeners for tournament-related events
      */
     setupEventListeners() {
-        // Listen for token captures
-        this.events.on('token:captured', (data) => {
+        // Listen for token captures - only respond to real ones, not simulations
+        this.events.onReal('token:captured', (data) => {
             if (this.game.isTournamentMode) {
                 this.handleTokenCapture(data.color);
             }
         });
         
-        // Listen for game ending
-        this.events.on('game:over', (data) => {
+        // Listen for game ending - only respond to real game events
+        this.events.onReal('game:over', (data) => {
             if (this.game.isTournamentMode) {
                 // This is a backup to the direct call in game-extension.js
                 // Prevents race conditions
@@ -47,10 +47,65 @@ class TournamentManager {
         });
         
         // Listen for tournament game initialized
-        this.events.on('tournament:gameInitialized', () => {
+        this.events.onReal('tournament:gameInitialized', () => {
             // Reset match outcome handling flag
             this.matchOutcomeHandled = false;
         });
+        
+        // Challenge button
+        const startMatchBtn = document.getElementById('start-match-btn');
+        if (startMatchBtn) {
+            startMatchBtn.addEventListener('click', () => {
+                this.startMatch();
+            });
+        }
+        
+        // Back to menu button
+        const backToMenuBtn = document.getElementById('back-to-menu-btn');
+        if (backToMenuBtn) {
+            backToMenuBtn.addEventListener('click', () => {
+                this.backToMainMenu();
+            });
+        }
+        
+        // Try again button
+        const retryBtn = document.getElementById('tournament-retry-btn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', () => {
+                retryBtn.classList.add('hidden');
+                this.startMatch();
+                
+                // Emit match:retried event
+                if (this.events) {
+                    this.events.emit('match:retried', {
+                        opponent: this.getCurrentOpponent()
+                    });
+                }
+            });
+        }
+        
+        // Complete tournament button
+        const tournamentCompleteBackBtn = document.getElementById('tournament-complete-back-btn');
+        if (tournamentCompleteBackBtn) {
+            tournamentCompleteBackBtn.addEventListener('click', () => {
+                const completeScreen = document.getElementById('tournament-complete-screen');
+                if (completeScreen) {
+                    completeScreen.classList.add('hidden');
+                }
+                const mainMenu = document.getElementById('main-menu');
+                if (mainMenu) {
+                    mainMenu.classList.remove('hidden');
+                    // Focus on the main menu for keyboard accessibility
+                    const firstButton = mainMenu.querySelector('button');
+                    if (firstButton) {
+                        firstButton.focus();
+                    }
+                }
+            });
+        }
+        
+        // Create tournament progress element outside of the ladder
+        this.createTournamentProgress();
     }
 
     /**
@@ -253,66 +308,6 @@ class TournamentManager {
     }
     
     /**
-     * Setup event listeners for tournament controls
-     */
-    setupEventListeners() {
-        // Challenge button
-        const startMatchBtn = document.getElementById('start-match-btn');
-        if (startMatchBtn) {
-            startMatchBtn.addEventListener('click', () => {
-                this.startMatch();
-            });
-        }
-        
-        // Back to menu button
-        const backToMenuBtn = document.getElementById('back-to-menu-btn');
-        if (backToMenuBtn) {
-            backToMenuBtn.addEventListener('click', () => {
-                this.backToMainMenu();
-            });
-        }
-        
-        // Try again button
-        const retryBtn = document.getElementById('tournament-retry-btn');
-        if (retryBtn) {
-            retryBtn.addEventListener('click', () => {
-                retryBtn.classList.add('hidden');
-                this.startMatch();
-                
-                // Emit match:retried event
-                if (this.events) {
-                    this.events.emit('match:retried', {
-                        opponent: this.getCurrentOpponent()
-                    });
-                }
-            });
-        }
-        
-        // Complete tournament button
-        const tournamentCompleteBackBtn = document.getElementById('tournament-complete-back-btn');
-        if (tournamentCompleteBackBtn) {
-            tournamentCompleteBackBtn.addEventListener('click', () => {
-                const completeScreen = document.getElementById('tournament-complete-screen');
-                if (completeScreen) {
-                    completeScreen.classList.add('hidden');
-                }
-                const mainMenu = document.getElementById('main-menu');
-                if (mainMenu) {
-                    mainMenu.classList.remove('hidden');
-                    // Focus on the main menu for keyboard accessibility
-                    const firstButton = mainMenu.querySelector('button');
-                    if (firstButton) {
-                        firstButton.focus();
-                    }
-                }
-            });
-        }
-        
-        // Create tournament progress element outside of the ladder
-        this.createTournamentProgress();
-    }
-    
-    /**
      * Create the tournament progress element outside of the scrollable ladder
      */
     createTournamentProgress() {
@@ -376,275 +371,6 @@ class TournamentManager {
                 percentage: (defeatedCount / totalOpponents) * 100
             });
         }
-    }
-    
-    /**
-     * Start a match with the current opponent
-     */
-    startMatch() {
-        const opponent = this.getCurrentOpponent();
-        if (!opponent) {
-            console.error("No opponent found at index", this.currentOpponentIndex);
-            return;
-        }
-        
-        // Hide tournament screen
-        const tournamentScreen = document.getElementById('tournament-screen');
-        if (tournamentScreen) {
-            tournamentScreen.classList.add('hidden');
-        }
-        
-        // Hide the retry button if it's visible
-        const retryBtn = document.getElementById('tournament-retry-btn');
-        if (retryBtn) {
-            retryBtn.classList.add('hidden');
-        }
-        
-        // Make sure win modal is hidden
-        const winModal = document.getElementById('win-modal');
-        if (winModal) {
-            winModal.classList.add('hidden');
-        }
-        
-        // Set game to tournament mode
-        this.game.isTournamentMode = true;
-        this.game.currentOpponent = opponent;
-        
-        // Randomly assign player colors
-        const playerIsWhite = Math.random() >= 0.5;
-        this.playerColor = playerIsWhite ? 'white' : 'black';
-        this.aiColor = playerIsWhite ? 'black' : 'white';
-        
-        // Reset match outcome handling flag
-        this.matchOutcomeHandled = false;
-        
-        // Initialize game with random color assignment
-        // Remember: initialize(blackPlayerType, whitePlayerType, blackAILevel, whiteAILevel)
-        if (playerIsWhite) {
-            // Player is white, AI is black
-            this.game.initialize('ai', 'human', opponent.difficulty, 0);
-        } else {
-            // Player is black, AI is white
-            this.game.initialize('human', 'ai', 0, opponent.difficulty);
-        }
-        
-        // Hide undo/redo buttons in tournament mode
-        if (this.game.ui) {
-            this.game.ui.updateUndoRedoButtons();
-        }
-        
-        // Show opponent display
-        this.showOpponentDisplay(opponent);
-        
-        // Add player display if not already present
-        this.setupPlayerDisplay();
-        
-        // Show start commentary
-        this.displayCommentary('start');
-        
-        // Show game screen
-        const gameScreen = document.getElementById('game-screen');
-        if (gameScreen) {
-            gameScreen.classList.remove('hidden');
-        }
-        
-        // Emit match:started event
-        if (this.events) {
-            this.events.emit('match:started', {
-                opponent: opponent,
-                playerColor: this.playerColor,
-                aiColor: this.aiColor,
-                difficulty: opponent.difficulty
-            });
-        }
-    }
-    
-    /**
-     * Setup the opponent display
-     */
-    showOpponentDisplay(opponent) {
-        const opponentDisplay = document.getElementById('opponent-display');
-        const opponentPortrait = document.getElementById('opponent-portrait');
-        const opponentInfo = document.getElementById('opponent-info');
-        
-        if (opponentDisplay && opponentPortrait && opponentInfo) {
-            opponentDisplay.classList.remove('hidden');
-            opponentPortrait.src = `assets/characters/${opponent.image}`;
-            opponentPortrait.onerror = function() {
-                // If image loading fails, try to get from localStorage fallback
-                try {
-                    const fallbackImage = localStorage.getItem(`char_img_${opponent.image}`);
-                    if (fallbackImage) {
-                        opponentPortrait.src = fallbackImage;
-                    } else {
-                        // Use a simple color block with text as fallback
-                        opponentPortrait.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiM0QTZGQTUiLz48dGV4dCB4PSI1MCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGFsaWdubWVudC1iYXNlbGluZT0ibWlkZGxlIj5DaGFyYWN0ZXI8L3RleHQ+PC9zdmc+';
-                    }
-                } catch (e) {
-                    console.error("Error using fallback image:", e);
-                }
-            };
-            
-            // Generate difficulty stars based on opponent difficulty
-            const difficultyStars = this.generateDifficultyStars(opponent.difficulty);
-            
-            opponentInfo.innerHTML = `
-                <div class="opponent-name">${opponent.name}</div>
-                <div class="opponent-difficulty">
-                    ${difficultyStars}
-                </div>
-                <div class="opponent-color">Playing as ${this.aiColor.toUpperCase()}</div>
-            `;
-            
-            // Emit opponentDisplay:shown event
-            if (this.events) {
-                this.events.emit('opponentDisplay:shown', {
-                    opponent: opponent,
-                    aiColor: this.aiColor
-                });
-            }
-        }
-    }
-    
-    /**
-     * Generate difficulty stars display
-     * @param {number} difficulty - The difficulty level
-     * @param {number} maxStars - Maximum number of stars to display (default is 6)
-     * @returns {string} HTML string with stars
-     */
-    generateDifficultyStars(difficulty, maxStars = 6) {
-        return '★'.repeat(Math.min(difficulty, maxStars)) + '☆'.repeat(Math.max(0, maxStars - difficulty));
-    }
-    
-    /**
-     * Setup the player display
-     */
-    setupPlayerDisplay() {
-        let playerDisplay = document.getElementById('player-display');
-        if (!playerDisplay) {
-            playerDisplay = document.createElement('div');
-            playerDisplay.id = 'player-display';
-            playerDisplay.className = 'player-display';
-            
-            const playerPortrait = document.createElement('img');
-            playerPortrait.id = 'player-portrait';
-            playerPortrait.src = 'assets/characters/player.webp';
-            playerPortrait.alt = 'Player';
-            // Fallback if player image doesn't load
-            playerPortrait.onerror = function() {
-                playerPortrait.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMzQTVBODAiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjM1IiByPSIyMCIgZmlsbD0iI2U2ZTZlNiIvPjxyZWN0IHg9IjMwIiB5PSI2MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjMwIiByeD0iNSIgZmlsbD0iI2U2ZTZlNiIvPjx0ZXh0IHg9IjUwIiB5PSI5MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGxheWVyPC90ZXh0Pjwvc3ZnPg==';
-            };
-            
-            const playerInfo = document.createElement('div');
-            playerInfo.id = 'player-info';
-            playerInfo.innerHTML = `
-                <div class="player-name">You</div>
-                <div class="player-color">Playing as ${this.playerColor.toUpperCase()}</div>
-            `;
-            
-            playerDisplay.appendChild(playerPortrait);
-            playerDisplay.appendChild(playerInfo);
-            
-            // Add to game screen on the left side
-            const gameScreen = document.getElementById('game-screen');
-            if (gameScreen) {
-                gameScreen.appendChild(playerDisplay);
-            }
-            
-            // Emit playerDisplay:created event
-            if (this.events) {
-                this.events.emit('playerDisplay:created', {
-                    playerColor: this.playerColor
-                });
-            }
-        } else {
-            playerDisplay.classList.remove('hidden');
-            // Update player color info
-            const playerColorInfo = playerDisplay.querySelector('.player-color');
-            if (playerColorInfo) {
-                playerColorInfo.textContent = `Playing as ${this.playerColor.toUpperCase()}`;
-            } else {
-                const playerInfo = playerDisplay.querySelector('#player-info');
-                if (playerInfo) {
-                    const colorDiv = document.createElement('div');
-                    colorDiv.className = 'player-color';
-                    colorDiv.textContent = `Playing as ${this.playerColor.toUpperCase()}`;
-                    playerInfo.appendChild(colorDiv);
-                }
-            }
-            
-            // Emit playerDisplay:updated event
-            if (this.events) {
-                this.events.emit('playerDisplay:updated', {
-                    playerColor: this.playerColor
-                });
-            }
-        }
-    }
-    
-    /**
-     * Display character commentary using a bag of quotes system
-     */
-    displayCommentary(type) {
-        const opponent = this.getCurrentOpponent();
-        if (!opponent || !opponent.quotes || !opponent.quotes[type]) {
-            return;
-        }
-        
-        // Initialize quote bags if they don't exist
-        this.quoteBags = this.quoteBags || {};
-        if (!this.quoteBags[opponent.id]) {
-            this.quoteBags[opponent.id] = {};
-        }
-        
-        // Get or create the quote bag for this type
-        if (!this.quoteBags[opponent.id][type] || this.quoteBags[opponent.id][type].length === 0) {
-            // If bag is empty or doesn't exist, refill it with all quotes (shuffled)
-            this.quoteBags[opponent.id][type] = [...opponent.quotes[type]];
-            this.shuffleArray(this.quoteBags[opponent.id][type]);
-        }
-        
-        // For non-critical events, apply probability to decide whether to show dialog
-        if (type === 'capture' || type === 'opponentCapture') {
-            // Only show dialog 30% of the time for captures
-            if (Math.random() > 0.3) {
-                return;
-            }
-        }
-        
-        // Get the next quote from the bag
-        const quote = this.quoteBags[opponent.id][type].pop();
-        
-        const commentaryBox = document.getElementById('commentary-box');
-        if (commentaryBox) {
-            commentaryBox.textContent = quote;
-            commentaryBox.classList.add('active');
-            
-            // Hide commentary after a few seconds
-            setTimeout(() => {
-                commentaryBox.classList.remove('active');
-            }, 3000);
-            
-            // Emit commentary:displayed event
-            if (this.events) {
-                this.events.emit('commentary:displayed', {
-                    type: type,
-                    quote: quote,
-                    opponent: opponent.name
-                });
-            }
-        }
-    }
-    
-    /**
-     * Shuffle an array using Fisher-Yates algorithm
-     */
-    shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
     }
     
     /**
@@ -749,6 +475,71 @@ class TournamentManager {
         } else {
             this.handlePlayerDefeat();
         }
+    }
+    
+    /**
+     * Display character commentary using a bag of quotes system
+     */
+    displayCommentary(type) {
+        const opponent = this.getCurrentOpponent();
+        if (!opponent || !opponent.quotes || !opponent.quotes[type]) {
+            return;
+        }
+        
+        // Initialize quote bags if they don't exist
+        this.quoteBags = this.quoteBags || {};
+        if (!this.quoteBags[opponent.id]) {
+            this.quoteBags[opponent.id] = {};
+        }
+        
+        // Get or create the quote bag for this type
+        if (!this.quoteBags[opponent.id][type] || this.quoteBags[opponent.id][type].length === 0) {
+            // If bag is empty or doesn't exist, refill it with all quotes (shuffled)
+            this.quoteBags[opponent.id][type] = [...opponent.quotes[type]];
+            this.shuffleArray(this.quoteBags[opponent.id][type]);
+        }
+        
+        // For non-critical events, apply probability to decide whether to show dialog
+        if (type === 'capture' || type === 'opponentCapture') {
+            // Only show dialog 30% of the time for captures
+            if (Math.random() > 0.3) {
+                return;
+            }
+        }
+        
+        // Get the next quote from the bag
+        const quote = this.quoteBags[opponent.id][type].pop();
+        
+        const commentaryBox = document.getElementById('commentary-box');
+        if (commentaryBox) {
+            commentaryBox.textContent = quote;
+            commentaryBox.classList.add('active');
+            
+            // Hide commentary after a few seconds
+            setTimeout(() => {
+                commentaryBox.classList.remove('active');
+            }, 3000);
+            
+            // Emit commentary:displayed event
+            if (this.events) {
+                this.events.emit('commentary:displayed', {
+                    type: type,
+                    quote: quote,
+                    opponent: opponent.name
+                });
+            }
+        }
+    }
+    
+    /**
+     * Shuffle an array using Fisher-Yates algorithm
+     */
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
     
     /**
@@ -1110,6 +901,210 @@ class TournamentManager {
             this.events.emit('menu:shown', {
                 from: 'tournament'
             });
+        }
+    }
+    
+    /**
+     * Start a match with the current opponent
+     */
+    startMatch() {
+        const opponent = this.getCurrentOpponent();
+        if (!opponent) {
+            console.error("No opponent found at index", this.currentOpponentIndex);
+            return;
+        }
+        
+        // Hide tournament screen
+        const tournamentScreen = document.getElementById('tournament-screen');
+        if (tournamentScreen) {
+            tournamentScreen.classList.add('hidden');
+        }
+        
+        // Hide the retry button if it's visible
+        const retryBtn = document.getElementById('tournament-retry-btn');
+        if (retryBtn) {
+            retryBtn.classList.add('hidden');
+        }
+        
+        // Make sure win modal is hidden
+        const winModal = document.getElementById('win-modal');
+        if (winModal) {
+            winModal.classList.add('hidden');
+        }
+        
+        // Set game to tournament mode
+        this.game.isTournamentMode = true;
+        this.game.currentOpponent = opponent;
+        
+        // Randomly assign player colors
+        const playerIsWhite = Math.random() >= 0.5;
+        this.playerColor = playerIsWhite ? 'white' : 'black';
+        this.aiColor = playerIsWhite ? 'black' : 'white';
+        
+        // Reset match outcome handling flag
+        this.matchOutcomeHandled = false;
+        
+        // Initialize game with random color assignment
+        // Remember: initialize(blackPlayerType, whitePlayerType, blackAILevel, whiteAILevel)
+        if (playerIsWhite) {
+            // Player is white, AI is black
+            this.game.initialize('ai', 'human', opponent.difficulty, 0);
+        } else {
+            // Player is black, AI is white
+            this.game.initialize('human', 'ai', 0, opponent.difficulty);
+        }
+        
+        // Hide undo/redo buttons in tournament mode
+        if (this.game.ui) {
+            this.game.ui.updateUndoRedoButtons();
+        }
+        
+        // Show opponent display
+        this.showOpponentDisplay(opponent);
+        
+        // Add player display if not already present
+        this.setupPlayerDisplay();
+        
+        // Show start commentary
+        this.displayCommentary('start');
+        
+        // Show game screen
+        const gameScreen = document.getElementById('game-screen');
+        if (gameScreen) {
+            gameScreen.classList.remove('hidden');
+        }
+        
+        // Emit match:started event
+        if (this.events) {
+            this.events.emit('match:started', {
+                opponent: opponent,
+                playerColor: this.playerColor,
+                aiColor: this.aiColor,
+                difficulty: opponent.difficulty
+            });
+        }
+    }
+    
+    /**
+     * Setup the opponent display
+     */
+    showOpponentDisplay(opponent) {
+        const opponentDisplay = document.getElementById('opponent-display');
+        const opponentPortrait = document.getElementById('opponent-portrait');
+        const opponentInfo = document.getElementById('opponent-info');
+        
+        if (opponentDisplay && opponentPortrait && opponentInfo) {
+            opponentDisplay.classList.remove('hidden');
+            opponentPortrait.src = `assets/characters/${opponent.image}`;
+            opponentPortrait.onerror = function() {
+                // If image loading fails, try to get from localStorage fallback
+                try {
+                    const fallbackImage = localStorage.getItem(`char_img_${opponent.image}`);
+                    if (fallbackImage) {
+                        opponentPortrait.src = fallbackImage;
+                    } else {
+                        // Use a simple color block with text as fallback
+                        opponentPortrait.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiM0QTZGQTUiLz48dGV4dCB4PSI1MCIgeT0iNTAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGFsaWdubWVudC1iYXNlbGluZT0ibWlkZGxlIj5DaGFyYWN0ZXI8L3RleHQ+PC9zdmc+';
+                    }
+                } catch (e) {
+                    console.error("Error using fallback image:", e);
+                }
+            };
+            
+            // Generate difficulty stars based on opponent difficulty
+            const difficultyStars = this.generateDifficultyStars(opponent.difficulty);
+            
+            opponentInfo.innerHTML = `
+                <div class="opponent-name">${opponent.name}</div>
+                <div class="opponent-difficulty">
+                    ${difficultyStars}
+                </div>
+                <div class="opponent-color">Playing as ${this.aiColor.toUpperCase()}</div>
+            `;
+            
+            // Emit opponentDisplay:shown event
+            if (this.events) {
+                this.events.emit('opponentDisplay:shown', {
+                    opponent: opponent,
+                    aiColor: this.aiColor
+                });
+            }
+        }
+    }
+    
+    /**
+     * Generate difficulty stars display
+     * @param {number} difficulty - The difficulty level
+     * @param {number} maxStars - Maximum number of stars to display (default is 6)
+     * @returns {string} HTML string with stars
+     */
+    generateDifficultyStars(difficulty, maxStars = 6) {
+        return '★'.repeat(Math.min(difficulty, maxStars)) + '☆'.repeat(Math.max(0, maxStars - difficulty));
+    }
+    
+    /**
+     * Setup the player display
+     */
+    setupPlayerDisplay() {
+        let playerDisplay = document.getElementById('player-display');
+        if (!playerDisplay) {
+            playerDisplay = document.createElement('div');
+            playerDisplay.id = 'player-display';
+            playerDisplay.className = 'player-display';
+            
+            const playerPortrait = document.createElement('img');
+            playerPortrait.id = 'player-portrait';
+            playerPortrait.src = 'assets/characters/player.webp';
+            playerPortrait.alt = 'Player';
+            // Fallback if player image doesn't load
+            playerPortrait.onerror = function() {
+                playerPortrait.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMzQTVBODAiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjM1IiByPSIyMCIgZmlsbD0iI2U2ZTZlNiIvPjxyZWN0IHg9IjMwIiB5PSI2MCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjMwIiByeD0iNSIgZmlsbD0iI2U2ZTZlNiIvPjx0ZXh0IHg9IjUwIiB5PSI5MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UGxheWVyPC90ZXh0Pjwvc3ZnPg==';
+            };
+            
+            const playerInfo = document.createElement('div');
+            playerInfo.id = 'player-info';
+            playerInfo.innerHTML = `
+                <div class="player-name">You</div>
+                <div class="player-color">Playing as ${this.playerColor.toUpperCase()}</div>
+            `;
+            
+            playerDisplay.appendChild(playerPortrait);
+            playerDisplay.appendChild(playerInfo);
+            
+            // Add to game screen on the left side
+            const gameScreen = document.getElementById('game-screen');
+            if (gameScreen) {
+                gameScreen.appendChild(playerDisplay);
+            }
+            
+            // Emit playerDisplay:created event
+            if (this.events) {
+                this.events.emit('playerDisplay:created', {
+                    playerColor: this.playerColor
+                });
+            }
+        } else {
+            playerDisplay.classList.remove('hidden');
+            // Update player color info
+            const playerColorInfo = playerDisplay.querySelector('.player-color');
+            if (playerColorInfo) {
+                playerColorInfo.textContent = `Playing as ${this.playerColor.toUpperCase()}`;
+            } else {
+                const playerInfo = playerDisplay.querySelector('#player-info');
+                if (playerInfo) {
+                    const colorDiv = document.createElement('div');
+                    colorDiv.className = 'player-color';
+                    colorDiv.textContent = `Playing as ${this.playerColor.toUpperCase()}`;
+                    playerInfo.appendChild(colorDiv);
+                }
+            }
+            
+            // Emit playerDisplay:updated event
+            if (this.events) {
+                this.events.emit('playerDisplay:updated', {
+                    playerColor: this.playerColor
+                });
+            }
         }
     }
     

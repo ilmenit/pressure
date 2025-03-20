@@ -1,6 +1,6 @@
 /**
  * AI Player with optimized move/undo system
- * Refactored to use event-driven architecture
+ * Refactored to use event-driven architecture with simulation context
  */
 class AIPlayer {
     constructor(board, moveManager, gameState, game) {
@@ -79,217 +79,230 @@ class AIPlayer {
             });
         }
         
-        // Initial progress notification
-        if (progressCallback) {
-            progressCallback({
-                type: 'start',
-                message: 'AI is thinking...'
-            });
+        // Begin simulation context - all events emitted during AI thinking will be marked as simulated
+        if (this.events) {
+            this.events.beginSimulation();
         }
         
-        // Get all possible moves
-        const possibleMoves = this.moveManager.generatePossibleMoves(color);
-        
-        // Reset performance counter
-        this.nodesEvaluated = 0;
-        console.time('AI thinking time');
-        
-        // No moves available
-        if (possibleMoves.length === 0) {
+        try {
+            // Initial progress notification
             if (progressCallback) {
                 progressCallback({
-                    type: 'end', 
-                    result: 'no_moves',
-                    message: 'AI found no possible moves'
+                    type: 'start',
+                    message: 'AI is thinking...'
                 });
             }
-            console.timeEnd('AI thinking time');
-            this.isThinking = false;
             
-            // Emit AI thinking completed event
+            // Get all possible moves
+            const possibleMoves = this.moveManager.generatePossibleMoves(color);
+            
+            // Reset performance counter
+            this.nodesEvaluated = 0;
+            console.time('AI thinking time');
+            
+            // No moves available
+            if (possibleMoves.length === 0) {
+                if (progressCallback) {
+                    progressCallback({
+                        type: 'end', 
+                        result: 'no_moves',
+                        message: 'AI found no possible moves'
+                    });
+                }
+                console.timeEnd('AI thinking time');
+                this.isThinking = false;
+                
+                // Emit AI thinking completed event
+                if (this.events) {
+                    this.events.emit('ai:noMovesFound', {
+                        color: color
+                    });
+                }
+                
+                return null;
+            }
+            
+            // If only one move is available, return it immediately
+            if (possibleMoves.length === 1) {
+                if (progressCallback) {
+                    progressCallback({
+                        type: 'end',
+                        result: 'single_move',
+                        message: 'AI found only one possible move'
+                    });
+                }
+                console.timeEnd('AI thinking time');
+                this.isThinking = false;
+                
+                // Emit AI thinking completed event
+                if (this.events) {
+                    this.events.emit('ai:singleMoveFound', {
+                        color: color,
+                        move: possibleMoves[0]
+                    });
+                }
+                
+                return possibleMoves[0];
+            }
+            
+            // Filter out moves that lead to immediate self-capture
+            const nonSuicidalMoves = this.filterObviouslySuicidalMoves(possibleMoves, color);
+            const movesToConsider = nonSuicidalMoves.length > 0 ? nonSuicidalMoves : possibleMoves;
+            
+            // Adjust search depth based on available moves to prevent very slow turns
+            let searchDepth = this.difficulty;
+            if (movesToConsider.length > 8 && searchDepth > 6) {
+                searchDepth = 6; // Moderate limitation
+            } else if (movesToConsider.length > 14 && searchDepth > 4) {
+                searchDepth = 4; // Limit depth for many available moves
+            }
+            // Update progress with depth info
+            if (progressCallback) {
+                progressCallback({
+                    type: 'depth',
+                    depth: searchDepth,
+                    message: `AI analyzing at depth ${searchDepth}...`
+                });
+            }
+            
+            // Emit AI search depth event
             if (this.events) {
-                this.events.emit('ai:noMovesFound', {
-                    color: color
+                this.events.emit('ai:searchDepthSet', {
+                    depth: searchDepth,
+                    movesCount: movesToConsider.length
                 });
             }
             
-            return null;
-        }
-        
-        // If only one move is available, return it immediately
-        if (possibleMoves.length === 1) {
+            // Evaluate all moves with proper depth search
+            const evaluatedMoves = [];
+            let completedMoves = 0;
+            
+            for (const move of movesToConsider) {
+                // Apply the move with AI simulation options
+                this.applyMove(move, color);
+                
+                // Evaluate this move by simulating opponent's best response
+                let score;
+                const oppositeColor = color === 'black' ? 'white' : 'black';
+                
+                if (searchDepth <= 1) {
+                    // For lowest difficulties or depth 1, just evaluate immediate position
+                    score = this.evaluatePosition(color);
+                } else {
+                    // For higher difficulties, perform minimax search
+                    score = this.minimax(searchDepth - 1, oppositeColor, -1, 1, false);
+                }
+                
+                // Undo the move
+                this.gameState.undoLastMove();
+                
+                // Add move to evaluated list
+                evaluatedMoves.push({ move, score });
+                
+                // Update progress indicator periodically (not every move to avoid too many updates)
+                completedMoves++;
+                if (completedMoves % Math.max(1, Math.floor(movesToConsider.length / 10)) === 0) {
+                    const progress = Math.floor((completedMoves / movesToConsider.length) * 100);
+                    if (progressCallback) {
+                        progressCallback({
+                            type: 'progress',
+                            percent: progress,
+                            message: `AI analyzing moves: ${progress}%`
+                        });
+                    }
+                    
+                    // Emit AI progress event
+                    if (this.events) {
+                        this.events.emit('ai:evaluationProgress', {
+                            progress: progress,
+                            completed: completedMoves,
+                            total: movesToConsider.length
+                        });
+                    }
+                }
+            }
+            
+            // Sort moves by score (best first)
+            evaluatedMoves.sort((a, b) => b.score - a.score);
+            
+            // Print performance info
+            console.log(`AI evaluated ${this.nodesEvaluated} positions at depth ${searchDepth}`);
+            console.timeEnd('AI thinking time');
+            
+            // Final notification that a move has been selected
             if (progressCallback) {
                 progressCallback({
                     type: 'end',
-                    result: 'single_move',
-                    message: 'AI found only one possible move'
-                });
-            }
-            console.timeEnd('AI thinking time');
-            this.isThinking = false;
-            
-            // Emit AI thinking completed event
-            if (this.events) {
-                this.events.emit('ai:singleMoveFound', {
-                    color: color,
-                    move: possibleMoves[0]
+                    result: 'move_selected',
+                    message: 'AI move selected'
                 });
             }
             
-            return possibleMoves[0];
-        }
-        
-        // Filter out moves that lead to immediate self-capture
-        const nonSuicidalMoves = this.filterObviouslySuicidalMoves(possibleMoves, color);
-        const movesToConsider = nonSuicidalMoves.length > 0 ? nonSuicidalMoves : possibleMoves;
-        
-        // Adjust search depth based on available moves to prevent very slow turns
-        let searchDepth = this.difficulty;
-        if (movesToConsider.length > 8 && searchDepth > 6) {
-            searchDepth = 6; // Moderate limitation
-        } else if (movesToConsider.length > 14 && searchDepth > 4) {
-            searchDepth = 4; // Limit depth for many available moves
-        }
-        // Update progress with depth info
-        if (progressCallback) {
-            progressCallback({
-                type: 'depth',
-                depth: searchDepth,
-                message: `AI analyzing at depth ${searchDepth}...`
-            });
-        }
-        
-        // Emit AI search depth event
-        if (this.events) {
-            this.events.emit('ai:searchDepthSet', {
-                depth: searchDepth,
-                movesCount: movesToConsider.length
-            });
-        }
-        
-        // Evaluate all moves with proper depth search
-        const evaluatedMoves = [];
-        let completedMoves = 0;
-        
-        for (const move of movesToConsider) {
-            // Apply the move with AI simulation options
-            this.applyMove(move, color);
+            // Improved move selection logic that adds controlled randomness at all difficulty levels
+            let selectedMove;
             
-            // Evaluate this move by simulating opponent's best response
-            let score;
-            const oppositeColor = color === 'black' ? 'white' : 'black';
-            
-            if (searchDepth <= 1) {
-                // For lowest difficulties or depth 1, just evaluate immediate position
-                score = this.evaluatePosition(color);
-            } else {
-                // For higher difficulties, perform minimax search
-                score = this.minimax(searchDepth - 1, oppositeColor, -1, 1, false);
-            }
-            
-            // Undo the move
-            this.gameState.undoLastMove();
-            
-            // Add move to evaluated list
-            evaluatedMoves.push({ move, score });
-            
-            // Update progress indicator periodically (not every move to avoid too many updates)
-            completedMoves++;
-            if (completedMoves % Math.max(1, Math.floor(movesToConsider.length / 10)) === 0) {
-                const progress = Math.floor((completedMoves / movesToConsider.length) * 100);
-                if (progressCallback) {
-                    progressCallback({
-                        type: 'progress',
-                        percent: progress,
-                        message: `AI analyzing moves: ${progress}%`
-                    });
-                }
+            if (evaluatedMoves.length > 1) {
+                // Get the best score
+                const bestScore = evaluatedMoves[0].score;
                 
-                // Emit AI progress event
-                if (this.events) {
-                    this.events.emit('ai:evaluationProgress', {
-                        progress: progress,
-                        completed: completedMoves,
-                        total: movesToConsider.length
-                    });
-                }
-            }
-        }
-        
-        // Sort moves by score (best first)
-        evaluatedMoves.sort((a, b) => b.score - a.score);
-        
-        // Print performance info
-        console.log(`AI evaluated ${this.nodesEvaluated} positions at depth ${searchDepth}`);
-        console.timeEnd('AI thinking time');
-        
-        // Final notification that a move has been selected
-        if (progressCallback) {
-            progressCallback({
-                type: 'end',
-                result: 'move_selected',
-                message: 'AI move selected'
-            });
-        }
-        
-        // Improved move selection logic that adds controlled randomness at all difficulty levels
-        let selectedMove;
-        
-        if (evaluatedMoves.length > 1) {
-            // Get the best score
-            const bestScore = evaluatedMoves[0].score;
-            
-            // Define a threshold for "equally good" moves based on difficulty
-            // Higher difficulty = smaller threshold (more selective)
-            const equalityThreshold = 0.02 * (10 - this.difficulty) / 9;
-            
-            // Find all moves that are within the threshold of the best score
-            const topMoves = evaluatedMoves.filter(move => 
-                (bestScore - move.score) <= equalityThreshold
-            );
-            
-            if (this.difficulty <= 3) {
-                // For lower difficulties, use the original behavior (top third of moves)
-                const topCount = Math.min(
-                    Math.max(1, Math.ceil(evaluatedMoves.length / 3)),
-                    evaluatedMoves.length
+                // Define a threshold for "equally good" moves based on difficulty
+                // Higher difficulty = smaller threshold (more selective)
+                const equalityThreshold = 0.02 * (10 - this.difficulty) / 9;
+                
+                // Find all moves that are within the threshold of the best score
+                const topMoves = evaluatedMoves.filter(move => 
+                    (bestScore - move.score) <= equalityThreshold
                 );
                 
-                const randomIndex = Math.floor(Math.random() * topCount);
-                selectedMove = evaluatedMoves[randomIndex].move;
-            } else if (topMoves.length > 1) {
-                // For higher difficulties with multiple equally good moves,
-                // randomly choose among the top moves
-                const randomIndex = Math.floor(Math.random() * topMoves.length);
-                selectedMove = topMoves[randomIndex].move;
-                
-                // Log for debugging
-                if (topMoves.length > 1) {
-                    console.log(`AI selected from ${topMoves.length} equally good moves (threshold: ${equalityThreshold.toFixed(4)})`);
+                if (this.difficulty <= 3) {
+                    // For lower difficulties, use the original behavior (top third of moves)
+                    const topCount = Math.min(
+                        Math.max(1, Math.ceil(evaluatedMoves.length / 3)),
+                        evaluatedMoves.length
+                    );
+                    
+                    const randomIndex = Math.floor(Math.random() * topCount);
+                    selectedMove = evaluatedMoves[randomIndex].move;
+                } else if (topMoves.length > 1) {
+                    // For higher difficulties with multiple equally good moves,
+                    // randomly choose among the top moves
+                    const randomIndex = Math.floor(Math.random() * topMoves.length);
+                    selectedMove = topMoves[randomIndex].move;
+                    
+                    // Log for debugging
+                    if (topMoves.length > 1) {
+                        console.log(`AI selected from ${topMoves.length} equally good moves (threshold: ${equalityThreshold.toFixed(4)})`);
+                    }
+                } else {
+                    // No equally good moves, just use the best one
+                    selectedMove = evaluatedMoves[0].move;
                 }
             } else {
-                // No equally good moves, just use the best one
+                // Only one move after evaluation
                 selectedMove = evaluatedMoves[0].move;
             }
-        } else {
-            // Only one move after evaluation
-            selectedMove = evaluatedMoves[0].move;
+            
+            this.isThinking = false;
+            
+            // Emit AI move selected event
+            if (this.events) {
+                this.events.emit('ai:moveEvaluated', {
+                    color: color,
+                    move: selectedMove,
+                    evaluatedMoves: evaluatedMoves.length,
+                    nodesEvaluated: this.nodesEvaluated,
+                    thinkingTime: performance.now() - this.thinkingStartTime
+                });
+            }
+            
+            return selectedMove;
         }
-        
-        this.isThinking = false;
-        
-        // Emit AI move selected event
-        if (this.events) {
-            this.events.emit('ai:moveEvaluated', {
-                color: color,
-                move: selectedMove,
-                evaluatedMoves: evaluatedMoves.length,
-                nodesEvaluated: this.nodesEvaluated,
-                thinkingTime: performance.now() - this.thinkingStartTime
-            });
+        finally {
+            // Always end the simulation context, even if there's an error
+            if (this.events) {
+                this.events.endSimulation();
+            }
         }
-        
-        return selectedMove;
     }
     
     /**
@@ -327,7 +340,6 @@ class AIPlayer {
         // resetActiveStatus: false because we're just simulating, not actually starting a new turn
         return this.gameState.applyMove(move, color, {
             skipRendering: true,
-            forAISimulation: true,
             resetActiveStatus: false
         });
     }

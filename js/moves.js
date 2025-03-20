@@ -128,152 +128,132 @@ class MoveManager {
         };
     }
 
-	/**
-	 * Execute a move
-	 * @param {Object} move - The move to execute
-	 * @param {string} currentPlayer - The current player color
-	 * @param {boolean} skipRendering - Whether to skip rendering (used for AI simulation)
-	 * @param {Object} options - Additional options
-	 * @returns {Array} - Captured tokens during this move
-	 */
-	executeMove(move, currentPlayer, skipRendering = false, options = {}) {
-		const oppositeColor = currentPlayer === 'black' ? 'white' : 'black';
-		
-		// Determine if this is an AI simulation or the actual AI move
-		const isAISimulation = skipRendering && !options.isActualAIMove;
-		const isActualAIMove = options.isActualAIMove || false;
-		
-		// Emit move:executing event
-		if (this.events) {
-			this.events.emit('move:executing', {
-				move: move,
-				player: currentPlayer,
-				forAISimulation: isAISimulation,
-				isActualAIMove: isActualAIMove
-			});
-		}
-		
-		if (move.type === 'move') {
-			// Simple move to empty space
-			this.board.moveToken(move.from.row, move.from.col, move.to.row, move.to.col);
-			
-			// Check for surrounded tokens after a simple move, passing options
-			const capturedTokens = this.board.checkAndTransformSurroundedTokens({
-				forAISimulation: isAISimulation,
-				isActualAIMove: isActualAIMove
-			});
-			
-			// Emit move:simple event
-			if (this.events) {
-				this.events.emit('move:simple', {
-					from: move.from,
-					to: move.to,
-					player: currentPlayer,
-					capturedTokens: capturedTokens,
-					forAISimulation: isAISimulation,
-					isActualAIMove: isActualAIMove
-				});
-			}
-		} else if (move.type === 'push') {
-			// Execute push
-			this.executePush(move, currentPlayer, oppositeColor, {
-				forAISimulation: isAISimulation,
-				isActualAIMove: isActualAIMove
-			});
-			
-			// Emit move:push event
-			if (this.events) {
-				this.events.emit('move:push', {
-					move: move,
-					player: currentPlayer,
-					direction: move.direction,
-					forAISimulation: isAISimulation,
-					isActualAIMove: isActualAIMove
-				});
-			}
-		}
-		
-		// Update the board display only if not in simulation mode
-		if (!skipRendering) {
-			this.board.renderBoard();
-		}
-		
-		// Return any tokens that were captured during this move
-		return this.board.getLastCapturedTokens();
-	}
+    /**
+     * Execute a move
+     * @param {Object} move - The move to execute
+     * @param {string} currentPlayer - The current player color
+     * @param {boolean} skipRendering - Whether to skip rendering (used for AI simulation)
+     * @returns {Array} - Captured tokens during this move
+     */
+    executeMove(move, currentPlayer, skipRendering = false) {
+        const oppositeColor = currentPlayer === 'black' ? 'white' : 'black';
+        
+        // Emit move:executing event
+        if (this.events) {
+            this.events.emit('move:executing', {
+                move: move,
+                player: currentPlayer
+            });
+        }
+        
+        if (move.type === 'move') {
+            // Simple move to empty space
+            this.board.moveToken(move.from.row, move.from.col, move.to.row, move.to.col);
+            
+            // Check for surrounded tokens after a simple move
+            const capturedTokens = this.board.checkAndTransformSurroundedTokens();
+            
+            // Emit move:simple event
+            if (this.events) {
+                this.events.emit('move:simple', {
+                    from: move.from,
+                    to: move.to,
+                    player: currentPlayer,
+                    capturedTokens: capturedTokens
+                });
+            }
+        } else if (move.type === 'push') {
+            // Execute push
+            this.executePush(move, currentPlayer, oppositeColor);
+            
+            // Emit move:push event
+            if (this.events) {
+                this.events.emit('move:push', {
+                    move: move,
+                    player: currentPlayer,
+                    direction: move.direction
+                });
+            }
+        }
+        
+        // Update the board display only if not in simulation mode
+        if (!skipRendering) {
+            this.board.renderBoard();
+        }
+        
+        // Return any tokens that were captured during this move
+        return this.board.getLastCapturedTokens();
+    }
 
-	/**
-	 * Execute a push move
-	 * @param {Object} move - The push move
-	 * @param {string} currentPlayer - Current player color
-	 * @param {string} oppositeColor - Opposite player color
-	 * @param {Object} options - Additional options
-	 */
-	executePush(move, currentPlayer, oppositeColor, options = {}) {
-		const { dr, dc } = this.getDirectionVector(move.direction);
-		
-		// Get all tokens in the line to be pushed (from the destination)
-		let tokensInLine = [];
-		let row = move.to.row;
-		let col = move.to.col;
-		
-		while (this.isValidPosition(row, col)) {
-			const token = this.board.getTokenAt(row, col);
-			if (!token) break;
-			
-			tokensInLine.push({ row, col });
-			row += dr;
-			col += dc;
-		}
-		
-		// Track which opponent tokens are pushed
-		const pushedOpponentTokens = [];
-		
-		// Move tokens starting from the end (to avoid overwriting)
-		for (let i = tokensInLine.length - 1; i >= 0; i--) {
-			const tokenPos = tokensInLine[i];
-			const tokenObj = this.board.getTokenAt(tokenPos.row, tokenPos.col);
-			const isOpponentToken = tokenObj && tokenObj.color === oppositeColor;
-			
-			const newRow = tokenPos.row + dr;
-			const newCol = tokenPos.col + dc;
-			
-			this.board.moveToken(tokenPos.row, tokenPos.col, newRow, newCol);
-			
-			// Track pushed opponent tokens by their new position
-			if (isOpponentToken && !tokenObj.isCaptured) {
-				pushedOpponentTokens.push({ row: newRow, col: newCol });
-			}
-			
-			// Check for surrounded tokens after each individual token movement
-			this.board.checkAndTransformSurroundedTokens(options);
-		}
-		
-		// Move the pushing token to the destination
-		this.board.moveToken(move.from.row, move.from.col, move.to.row, move.to.col);
-		
-		// Check for surrounds after the pusher moves too
-		this.board.checkAndTransformSurroundedTokens(options);
-		
-		// Make all pushed opponent tokens inactive
-		for (let i = 0; i < pushedOpponentTokens.length; i++) {
-			const pos = pushedOpponentTokens[i];
-			const token = this.board.getTokenAt(pos.row, pos.col);
-			if (token && token.color === oppositeColor && !token.isCaptured) {
-				token.isActive = false;
-				
-				// Emit token:deactivated event
-				if (this.events) {
-					this.events.emit('token:deactivated', {
-						position: pos,
-						color: oppositeColor,
-						forAISimulation: options.forAISimulation,
-						isActualAIMove: options.isActualAIMove
-					});
-				}
-			}
-		}
-	}
+    /**
+     * Execute a push move
+     * @param {Object} move - The push move
+     * @param {string} currentPlayer - Current player color
+     * @param {string} oppositeColor - Opposite player color
+     */
+    executePush(move, currentPlayer, oppositeColor) {
+        const { dr, dc } = this.getDirectionVector(move.direction);
+        
+        // Get all tokens in the line to be pushed (from the destination)
+        let tokensInLine = [];
+        let row = move.to.row;
+        let col = move.to.col;
+        
+        while (this.isValidPosition(row, col)) {
+            const token = this.board.getTokenAt(row, col);
+            if (!token) break;
+            
+            tokensInLine.push({ row, col });
+            row += dr;
+            col += dc;
+        }
+        
+        // Track which opponent tokens are pushed
+        const pushedOpponentTokens = [];
+        
+        // Move tokens starting from the end (to avoid overwriting)
+        for (let i = tokensInLine.length - 1; i >= 0; i--) {
+            const tokenPos = tokensInLine[i];
+            const tokenObj = this.board.getTokenAt(tokenPos.row, tokenPos.col);
+            const isOpponentToken = tokenObj && tokenObj.color === oppositeColor;
+            
+            const newRow = tokenPos.row + dr;
+            const newCol = tokenPos.col + dc;
+            
+            this.board.moveToken(tokenPos.row, tokenPos.col, newRow, newCol);
+            
+            // Track pushed opponent tokens by their new position
+            if (isOpponentToken && !tokenObj.isCaptured) {
+                pushedOpponentTokens.push({ row: newRow, col: newCol });
+            }
+            
+            // Check for surrounded tokens after each individual token movement
+            this.board.checkAndTransformSurroundedTokens();
+        }
+        
+        // Move the pushing token to the destination
+        this.board.moveToken(move.from.row, move.from.col, move.to.row, move.to.col);
+        
+        // Check for surrounds after the pusher moves too
+        this.board.checkAndTransformSurroundedTokens();
+        
+        // Make all pushed opponent tokens inactive
+        for (let i = 0; i < pushedOpponentTokens.length; i++) {
+            const pos = pushedOpponentTokens[i];
+            const token = this.board.getTokenAt(pos.row, pos.col);
+            if (token && token.color === oppositeColor && !token.isCaptured) {
+                token.isActive = false;
+                
+                // Emit token:deactivated event
+                if (this.events) {
+                    this.events.emit('token:deactivated', {
+                        position: pos,
+                        color: oppositeColor
+                    });
+                }
+            }
+        }
+    }
 
     /**
      * Convert direction name to vector

@@ -1,6 +1,7 @@
 /**
  * Sound Manager for the game
  * Implements the Observer pattern to respond to game events with sounds
+ * Enhanced to use simulation context filtering
  */
 class SoundManager {
     constructor(events) {
@@ -11,10 +12,6 @@ class SoundManager {
         this.isSoundEnabled = true;
         this.isMuted = false;
         this.isReady = false;
-        
-        // Flags to track AI activity
-        this.isAISimulating = false;  // During AI minimax simulation
-        this.isAIFinalMoving = false; // During AI's actual selected move execution
         
         // Load sound preferences first
         this.loadSoundPreferences();
@@ -88,169 +85,120 @@ class SoundManager {
     setupEventListeners() {
         if (!this.events) return;
         
-        // Track AI thinking and move execution states
-        this.events.on('ai:thinking', () => {
-            this.isAISimulating = true;
-            this.isAIFinalMoving = false;
-            console.log("[SoundManager] AI thinking started");
-        });
-        
-        this.events.on('ai:moveSelected', () => {
-            // AI has selected its move and is about to execute it
-            this.isAIFinalMoving = true;
-            console.log("[SoundManager] AI move selected, final move execution starting");
-        });
-        
-        this.events.on('ai:moveExecuted', () => {
-            // AI has completely finished its turn
-            this.isAISimulating = false;
-            this.isAIFinalMoving = false;
-            console.log("[SoundManager] AI move execution complete");
-        });
-        
-        // Define event to sound mappings for game events
-		const eventSoundMap = {
-			// UI interactions
-			'ui:tokenSelected': (data) => {
-				// If the UIManager has already validated this token, use that information
-				if (data && data.isValidToken === true) {
-					return 'tokenSelect';
-				}
-				
-				// Otherwise, perform our own validation
-				if (data && data.position && window.game) {
-					const row = data.position.row;
-					const col = data.position.col;
-					const token = window.game.board.getTokenAt(row, col);
-					
-					if (token && 
-						token.color === window.game.currentPlayer && 
-						token.isActive && 
-						!token.isCaptured) {
-						return 'tokenSelect';
-					}
-				}
-				return null;
-			},
-			
-			'ui:winModalShown': data => {
-				// In tournament mode, check if the winner is the player
-				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
-					const playerColor = window.game.tournamentManager.playerColor;
-					return data.winner === playerColor ? 'matchWin' : 'matchLose';
-				}
-				// In standard mode, use the default behavior (white = player)
-				return data.winner === 'white' ? 'matchWin' : 'matchLose';
-			},
-			
-			// Move execution - filters to detect real vs simulation moves
-			'move:executed': (data) => {
-				// Skip if explicitly marked as simulation or during AI simulation
-				if ((data && data.forAISimulation === true) || 
-					(this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove)) {
-					return null;
-				}
-				
-				// Tournament mode - check who's moving based on player color
-				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
-					const playerColor = window.game.tournamentManager.playerColor;
-					return data.player === playerColor ? 'player1Move' : 'player2Move';
-				}
-				
-				// Standard mode - use default logic (white = player1, black = player2)
-				return data.player === 'white' ? 'player1Move' : 'player2Move';
-			},
-			
-			// Move types
-			'move:simple': (data) => {
-				// Skip if explicitly marked as simulation or during AI simulation
-				if ((data && data.forAISimulation === true) || 
-					(this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove)) {
-					return null;
-				}
-				
-				// Tournament mode - check who's moving based on player color
-				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
-					const playerColor = window.game.tournamentManager.playerColor;
-					return data.player === playerColor ? 'player1Move' : 'player2Move';
-				}
-				
-				// Standard mode - use default logic (white = player1, black = player2)
-				return data.player === 'white' ? 'player1Move' : 'player2Move';
-			},
-			
-			'move:push': (data) => {
-				// Skip if explicitly marked as simulation or during AI simulation
-				if ((data && data.forAISimulation === true) || 
-					(this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove)) {
-					return null;
-				}
-				
-				// Tournament mode - check who's moving based on player color
-				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
-					const playerColor = window.game.tournamentManager.playerColor;
-					return data.player === playerColor ? 'player1Move' : 'player2Move';
-				}
-				
-				// Standard mode - use default logic (white = player1, black = player2)
-				return data.player === 'white' ? 'player1Move' : 'player2Move';
-			},
-			
-			// Token events - capture sounds
-			'token:captured': (data) => {
-				// Skip if explicitly marked as simulation or during AI simulation
-				if ((data && data.forAISimulation === true && !data.isActualAIMove) || 
-					(this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove)) {
-					return null;
-				}
-				
-				// Play sound based on the color of the captured token
-				if (data && data.color) {
-					// In tournament mode, check if the captured token belongs to player or AI
-					if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
-						const playerColor = window.game.tournamentManager.playerColor;
-						// If the captured token belongs to the player, play player1Capture
-						// If it belongs to the AI, play player2Capture
-						return data.color === playerColor ? 'player1Capture' : 'player2Capture';
-					}
-					
-					// In standard mode, use the default logic
-					return data.color === 'white' ? 'player1Capture' : 'player2Capture';
-				}
-				
-				// Fallback
-				return 'player1Capture';
-			},
-						
-			// Game state
-			'game:over': data => {
-				// Skip if explicitly marked as simulation
-				if (data && data.forAISimulation === true) {
-					return null;
-				}
-				
-				// In tournament mode, check if the winner is the player
-				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
-					const playerColor = window.game.tournamentManager.playerColor;
-					return data.winner === playerColor ? 'matchWin' : 'matchLose';
-				}
-				
-				// In standard mode, use the default behavior (white = player)
-				return data.winner === 'white' ? 'matchWin' : 'matchLose';
-			},
-			
-			// Tournament events
-			'tournament:completed': 'winTournament',
-			'tournament:gameEnded': data => {
-				// Check if the winner is the player
-				if (window.game && window.game.tournamentManager) {
-					const playerColor = window.game.tournamentManager.playerColor;
-					return data.winner === playerColor ? 'matchWin' : 'matchLose';
-				}
-				// Fallback to default if tournament manager not available
-				return data.winner === 'white' ? 'matchWin' : 'matchLose';
-			},
-		};
+        // Define event to sound mappings for game events - using onReal to filter simulations
+        const eventSoundMap = {
+            // UI interactions - these are always real anyway
+            'ui:tokenSelected': (data) => {
+                // If the UIManager has already validated this token, use that information
+                if (data && data.isValidToken === true) {
+                    return 'tokenSelect';
+                }
+                
+                // Otherwise, perform our own validation
+                if (data && data.position && window.game) {
+                    const row = data.position.row;
+                    const col = data.position.col;
+                    const token = window.game.board.getTokenAt(row, col);
+                    
+                    if (token && 
+                        token.color === window.game.currentPlayer && 
+                        token.isActive && 
+                        !token.isCaptured) {
+                        return 'tokenSelect';
+                    }
+                }
+                return null;
+            },
+            
+            'ui:winModalShown': data => {
+                // In tournament mode, check if the winner is the player
+                if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+                    const playerColor = window.game.tournamentManager.playerColor;
+                    return data.winner === playerColor ? 'matchWin' : 'matchLose';
+                }
+                // In standard mode, use the default behavior (white = player)
+                return data.winner === 'white' ? 'matchWin' : 'matchLose';
+            },
+            
+            // Move execution - now using onReal events
+            'move:executed': (data) => {
+                // Tournament mode - check who's moving based on player color
+                if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+                    const playerColor = window.game.tournamentManager.playerColor;
+                    return data.player === playerColor ? 'player1Move' : 'player2Move';
+                }
+                
+                // Standard mode - use default logic (white = player1, black = player2)
+                return data.player === 'white' ? 'player1Move' : 'player2Move';
+            },
+            
+            // Move types
+            'move:simple': (data) => {
+                // Tournament mode - check who's moving based on player color
+                if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+                    const playerColor = window.game.tournamentManager.playerColor;
+                    return data.player === playerColor ? 'player1Move' : 'player2Move';
+                }
+                
+                // Standard mode - use default logic (white = player1, black = player2)
+                return data.player === 'white' ? 'player1Move' : 'player2Move';
+            },
+            
+            'move:push': (data) => {
+                // Tournament mode - check who's moving based on player color
+                if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+                    const playerColor = window.game.tournamentManager.playerColor;
+                    return data.player === playerColor ? 'player1Move' : 'player2Move';
+                }
+                
+                // Standard mode - use default logic (white = player1, black = player2)
+                return data.player === 'white' ? 'player1Move' : 'player2Move';
+            },
+            
+            // Token events - capture sounds
+            'token:captured': (data) => {
+                // Play sound based on the color of the captured token
+                if (data && data.color) {
+                    // In tournament mode, check if the captured token belongs to player or AI
+                    if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+                        const playerColor = window.game.tournamentManager.playerColor;
+                        // If the captured token belongs to the player, play player1Capture
+                        // If it belongs to the AI, play player2Capture
+                        return data.color === playerColor ? 'player1Capture' : 'player2Capture';
+                    }
+                    
+                    // In standard mode, use the default logic
+                    return data.color === 'white' ? 'player1Capture' : 'player2Capture';
+                }
+                
+                // Fallback
+                return 'player1Capture';
+            },
+                        
+            // Game state
+            'game:over': data => {
+                // In tournament mode, check if the winner is the player
+                if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+                    const playerColor = window.game.tournamentManager.playerColor;
+                    return data.winner === playerColor ? 'matchWin' : 'matchLose';
+                }
+                
+                // In standard mode, use the default behavior (white = player)
+                return data.winner === 'white' ? 'matchWin' : 'matchLose';
+            },
+            
+            // Tournament events
+            'tournament:completed': 'winTournament',
+            'tournament:gameEnded': data => {
+                // Check if the winner is the player
+                if (window.game && window.game.tournamentManager) {
+                    const playerColor = window.game.tournamentManager.playerColor;
+                    return data.winner === playerColor ? 'matchWin' : 'matchLose';
+                }
+                // Fallback to default if tournament manager not available
+                return data.winner === 'white' ? 'matchWin' : 'matchLose';
+            },
+        };
         
         // Add tutorial events if they exist
         if (typeof window.tutorialService !== 'undefined') {
@@ -258,22 +206,44 @@ class SoundManager {
             eventSoundMap['tutorial:stepCompleted'] = 'tokenSelect';
         }
         
-        // Register listeners based on mapping
+        // Register listeners based on mapping - always use onReal for gameplay events
         Object.entries(eventSoundMap).forEach(([eventName, soundNameOrFn]) => {
-            this.events.on(eventName, data => {
-                try {
-                    const soundName = typeof soundNameOrFn === 'function' 
-                        ? soundNameOrFn(data) 
-                        : soundNameOrFn;
-                    
-                    // Only play if soundName is not null
-                    if (soundName) {
-                        this.playSound(soundName);
+            // Gameplay events should use onReal to filter out simulations
+            if (eventName.startsWith('move:') || 
+                eventName === 'token:captured' || 
+                eventName === 'game:over') {
+                
+                this.events.onReal(eventName, data => {
+                    try {
+                        const soundName = typeof soundNameOrFn === 'function' 
+                            ? soundNameOrFn(data) 
+                            : soundNameOrFn;
+                        
+                        // Only play if soundName is not null
+                        if (soundName) {
+                            this.playSound(soundName);
+                        }
+                    } catch (e) {
+                        console.warn(`Error playing sound for event ${eventName}:`, e);
                     }
-                } catch (e) {
-                    console.warn(`Error playing sound for event ${eventName}:`, e);
-                }
-            });
+                });
+            } else {
+                // UI events are already real (not simulated) so can use regular on
+                this.events.on(eventName, data => {
+                    try {
+                        const soundName = typeof soundNameOrFn === 'function' 
+                            ? soundNameOrFn(data) 
+                            : soundNameOrFn;
+                        
+                        // Only play if soundName is not null
+                        if (soundName) {
+                            this.playSound(soundName);
+                        }
+                    } catch (e) {
+                        console.warn(`Error playing sound for event ${eventName}:`, e);
+                    }
+                });
+            }
         });
         
         // Add button click sounds
