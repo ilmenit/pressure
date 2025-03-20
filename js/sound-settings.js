@@ -38,9 +38,12 @@
                 soundToggleBtn.textContent = `Sound: ${isEnabled ? 'ON' : 'OFF'}`;
                 // Play a sound when enabling
                 if (isEnabled) {
-                    window.soundManager.playSound('buttonClick');
+                    window.soundManager.playSound('menuButtonClick'); // Use menu button sound
                 }
             });
+            
+            // Mark the button to prevent duplicate sound handlers
+            soundToggleBtn.setAttribute('data-sound-added', 'true');
         }
     }
 

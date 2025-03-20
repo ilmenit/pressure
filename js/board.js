@@ -272,52 +272,62 @@ class Board {
         return hasTokenAbove && hasTokenBelow && hasTokenLeft && hasTokenRight;
     }
 
-    /**
-     * Check for and transform surrounded tokens (capture them)
-     */
-    checkAndTransformSurroundedTokens() {
-        // Clear the last captured tokens array
-        this.lastCapturedTokens = [];
-        
-        let captured = [];
-        
-        for (let row = 0; row < this.size; row++) {
-            for (let col = 0; col < this.size; col++) {
-                const token = this.getTokenAt(row, col);
-                if (token && !token.isCaptured && this.isTokenSurrounded(row, col)) {
-                    token.isCaptured = true;
-                    
-                    const captureInfo = { 
-                        row, 
-                        col, 
-                        color: token.color
-                    };
-                    
-                    captured.push(captureInfo);
-                    
-                    // Add to the last captured tokens array
-                    this.lastCapturedTokens.push(captureInfo);
-                    
-                    // Emit token:captured event
-                    if (this.events) {
-                        this.events.emit('token:captured', {
-                            row: row,
-                            col: col,
-                            color: token.color,
-                            position: { row, col }
-                        });
-                    }
-                    
-                    // For backward compatibility
-                    if (this.game) {
-                        this.game.notifyTokenCaptured(token.color);
-                    }
-                }
-            }
-        }
-        
-        return captured;
-    }
+	/**
+	 * Check for and transform surrounded tokens (capture them)
+	 * @param {Object} options - Optional parameters
+	 * @returns {Array} - Captured tokens
+	 */
+	checkAndTransformSurroundedTokens(options = {}) {
+		// Clear the last captured tokens array
+		this.lastCapturedTokens = [];
+		
+		let captured = [];
+		
+		// Determine if this is a simulation or real move
+		// options.isActualAIMove from Game.executeAIMove takes precedence
+		const isSimulation = options.isActualAIMove === true ? false : 
+							  (options.forAISimulation === true || 
+							  (window.game && window.game.isProcessingAIMove && !window.soundManager?.isAIFinalMoving));
+		
+		for (let row = 0; row < this.size; row++) {
+			for (let col = 0; col < this.size; col++) {
+				const token = this.getTokenAt(row, col);
+				if (token && !token.isCaptured && this.isTokenSurrounded(row, col)) {
+					token.isCaptured = true;
+					
+					const captureInfo = { 
+						row, 
+						col, 
+						color: token.color
+					};
+					
+					captured.push(captureInfo);
+					
+					// Add to the last captured tokens array
+					this.lastCapturedTokens.push(captureInfo);
+					
+					// Emit token:captured event
+					if (this.events) {
+						this.events.emit('token:captured', {
+							row: row,
+							col: col,
+							color: token.color,
+							position: { row, col },
+							forAISimulation: isSimulation,
+							isActualAIMove: options.isActualAIMove
+						});
+					}
+					
+					// For backward compatibility
+					if (this.game) {
+						this.game.notifyTokenCaptured(token.color, isSimulation);
+					}
+				}
+			}
+		}
+		
+		return captured;
+	}
 
     /**
      * Reset active status for all tokens of a given color

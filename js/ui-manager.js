@@ -324,83 +324,106 @@ class UIManager {
         });
     }
 
-    /**
-     * Handle cell click
-     */
-    handleCellClick(row, col) {
-        // Check if it's a human player's turn
-        if (!this.game.isHumanTurn()) {
-            return;
-        }
-        
-        const currentPlayerColor = this.game.currentPlayer;
-        const token = this.board.getTokenAt(row, col);
-        
-        // If no token is selected yet
-        if (!this.selectedTokenPos) {
-            // Check if clicked on a valid token (must be active)
-            if (token && token.color === currentPlayerColor && token.isActive === true && !token.isCaptured) {
-                this.selectToken(row, col);
-            }
-            return;
-        }
-        
-        // If a token is already selected
-        
-        // Clicked on the same token - deselect it
-        if (this.selectedTokenPos.row === row && this.selectedTokenPos.col === col) {
-            this.clearSelection();
-            return;
-        }
-        
-        // Check if this is a potential push of your own token
-        // (Don't reselect if it could be a valid push destination)
-        const isValidPushDestination = this.possibleMoves.some(move => 
-            move.to.row === row && move.to.col === col
-        );
-        
-        // Only reselect if it's not a valid push destination
-        if (token && token.color === currentPlayerColor && token.isActive && 
-            !token.isCaptured && !isValidPushDestination) {
-            this.clearSelection();
-            this.selectToken(row, col);
-            return;
-        }
-        
-        // Check if clicked on a valid destination
-        const move = this.findMoveToPosition(row, col);
-        if (move) {
-            this.executeMove(move);
-        }
-    }
-
-    /**
-     * Select a token and show its possible moves
-     */
-    selectToken(row, col) {
-        this.selectedTokenPos = { row, col };
-        
-        // Generate possible moves for this token
-        const allMoves = this.moveManager.generatePossibleMoves(this.game.currentPlayer);
-        this.possibleMoves = allMoves.filter(move => 
-            move.from.row === row && move.from.col === col
-        );
-        
-        // Highlight the selected token and possible destinations
-        const possibleDestinations = this.possibleMoves.map(move => move.to);
-        this.board.highlightCells([{ row, col }, ...possibleDestinations]);
-        
-        // Update status to show piece is selected
-        const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
-        this.updateStatus(`${currentPlayer} turn. Token selected. Choose destination.`);
-        
-        // Emit UI event
-        this.events.emit('ui:tokenSelected', {
-            position: { row, col },
-            player: this.game.currentPlayer,
-            possibleMoves: this.possibleMoves
-        });
-    }
+	/**
+	 * Handle cell click
+	 * @param {number} row - Row index of the clicked cell
+	 * @param {number} col - Column index of the clicked cell
+	 */
+	handleCellClick(row, col) {
+		// Check if it's a human player's turn
+		if (!this.game.isHumanTurn()) {
+			return;
+		}
+		
+		const currentPlayerColor = this.game.currentPlayer;
+		const token = this.board.getTokenAt(row, col);
+		
+		// If no token is selected yet
+		if (!this.selectedTokenPos) {
+			// Check if clicked on a valid token (must be active)
+			if (token && token.color === currentPlayerColor && token.isActive === true && !token.isCaptured) {
+				this.selectToken(row, col);
+			}
+			return;
+		}
+		
+		// If a token is already selected
+		
+		// Clicked on the same token - deselect it
+		if (this.selectedTokenPos.row === row && this.selectedTokenPos.col === col) {
+			this.clearSelection();
+			return;
+		}
+		
+		// Check if this is a potential push of your own token
+		// (Don't reselect if it could be a valid push destination)
+		const isValidPushDestination = this.possibleMoves.some(move => 
+			move.to.row === row && move.to.col === col
+		);
+		
+		// Only reselect if it's not a valid push destination
+		if (token && token.color === currentPlayerColor && token.isActive && 
+			!token.isCaptured && !isValidPushDestination) {
+			this.clearSelection();
+			this.selectToken(row, col);
+			return;
+		}
+		
+		// Check if clicked on a valid destination
+		const move = this.findMoveToPosition(row, col);
+		if (move) {
+			this.executeMove(move);
+		}
+	}
+	/**
+	 * Select a token and show its possible moves
+	 * @param {number} row - Row index of the token
+	 * @param {number} col - Column index of the token
+	 */
+	selectToken(row, col) {
+		this.selectedTokenPos = { row, col };
+		
+		// Get the token at this position
+		const token = this.board.getTokenAt(row, col);
+		
+		// Generate possible moves for this token
+		const allMoves = this.moveManager.generatePossibleMoves(this.game.currentPlayer);
+		this.possibleMoves = allMoves.filter(move => 
+			move.from.row === row && move.from.col === col
+		);
+		
+		// Highlight the selected token and possible destinations
+		const possibleDestinations = this.possibleMoves.map(move => move.to);
+		this.board.highlightCells([{ row, col }, ...possibleDestinations]);
+		
+		// Update status to show piece is selected
+		const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
+		this.updateStatus(`${currentPlayer} turn. Token selected. Choose destination.`);
+		
+		// Check if this is a valid token that should trigger a sound
+		const isValidToken = token && 
+							token.color === this.game.currentPlayer && 
+							token.isActive && 
+							!token.isCaptured;
+		
+		// Emit UI event with additional validation information
+		this.events.emit('ui:tokenSelected', {
+			position: { row, col },
+			player: this.game.currentPlayer,
+			possibleMoves: this.possibleMoves,
+			isValidToken: isValidToken,  // Include explicit validation result
+			token: token ? {             // Include token info for debugging
+				color: token.color,
+				isActive: token.isActive,
+				isCaptured: token.isCaptured
+			} : null
+		});
+		
+		// Play token selection sound if available and this is a valid token
+		if (isValidToken && window.soundManager) {
+			window.soundManager.playSound('tokenSelect');
+		}
+	}
 
     /**
      * Clear the current selection

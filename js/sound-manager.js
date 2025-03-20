@@ -12,6 +12,10 @@ class SoundManager {
         this.isMuted = false;
         this.isReady = false;
         
+        // Flags to track AI activity
+        this.isAISimulating = false;  // During AI minimax simulation
+        this.isAIFinalMoving = false; // During AI's actual selected move execution
+        
         // Load sound preferences first
         this.loadSoundPreferences();
         
@@ -84,26 +88,168 @@ class SoundManager {
     setupEventListeners() {
         if (!this.events) return;
         
+        // Track AI thinking and move execution states
+        this.events.on('ai:thinking', () => {
+            this.isAISimulating = true;
+            this.isAIFinalMoving = false;
+            console.log("[SoundManager] AI thinking started");
+        });
+        
+        this.events.on('ai:moveSelected', () => {
+            // AI has selected its move and is about to execute it
+            this.isAIFinalMoving = true;
+            console.log("[SoundManager] AI move selected, final move execution starting");
+        });
+        
+        this.events.on('ai:moveExecuted', () => {
+            // AI has completely finished its turn
+            this.isAISimulating = false;
+            this.isAIFinalMoving = false;
+            console.log("[SoundManager] AI move execution complete");
+        });
+        
         // Define event to sound mappings for game events
         const eventSoundMap = {
             // UI interactions
-            'ui:tokenSelected': 'tokenSelect',
+
+			'ui:tokenSelected': (data) => {
+				// If the UIManager has already validated this token, use that information
+				if (data && data.isValidToken === true) {
+					return 'tokenSelect';
+				}
+				
+				// Otherwise, perform our own validation
+				if (data && data.position && window.game) {
+					const row = data.position.row;
+					const col = data.position.col;
+					const token = window.game.board.getTokenAt(row, col);
+					
+					if (token && 
+						token.color === window.game.currentPlayer && 
+						token.isActive && 
+						!token.isCaptured) {
+						return 'tokenSelect';
+					}
+				}
+				return null;
+			},
+            
             'ui:winModalShown': data => data.winner === 'white' ? 'matchWin' : 'matchLose',
             
-            // Move execution
-            'move:executed': data => data.player === 'white' ? 'player1Move' : 'player2Move',
-            'move:simple': data => data.player === 'white' ? 'player1Move' : 'player2Move',
-            'move:push': data => data.player === 'white' ? 'player1Move' : 'player2Move',
+            // Move execution - filters to detect real vs simulation moves
+            'move:executed': (data) => {
+                // If this is explicitly marked as AI's actual move, play sound
+                if (data && data.isActualAIMove) {
+                    return data.player === 'white' ? 'player1Move' : 'player2Move';
+                }
+                
+                // Skip if explicitly marked as simulation
+                if (data && data.forAISimulation === true) {
+                    return null;
+                }
+                
+                // Skip during AI simulation unless it's the final move
+                if (this.isAISimulating && !this.isAIFinalMoving) {
+                    return null;
+                }
+                
+                return data.player === 'white' ? 'player1Move' : 'player2Move';
+            },
             
-            // Token events
-            'token:captured': data => {
-                const game = window.game;
-                const currentPlayer = game ? game.currentPlayer : 'white';
-                return currentPlayer === 'white' ? 'player1Capture' : 'player2Capture';
+            // Move types
+            'move:simple': (data) => {
+                // If this is explicitly marked as AI's actual move, play sound
+                if (data && data.isActualAIMove) {
+                    return data.player === 'white' ? 'player1Move' : 'player2Move';
+                }
+                
+                // Skip if explicitly marked as simulation
+                if (data && data.forAISimulation === true) {
+                    return null;
+                }
+                
+                // Skip during AI simulation unless it's the final move
+                if (this.isAISimulating && !this.isAIFinalMoving) {
+                    return null;
+                }
+                
+                return data.player === 'white' ? 'player1Move' : 'player2Move';
+            },
+            
+            'move:push': (data) => {
+                // If this is explicitly marked as AI's actual move, play sound
+                if (data && data.isActualAIMove) {
+                    return data.player === 'white' ? 'player1Move' : 'player2Move';
+                }
+                
+                // Skip if explicitly marked as simulation
+                if (data && data.forAISimulation === true) {
+                    return null;
+                }
+                
+                // Skip during AI simulation unless it's the final move
+                if (this.isAISimulating && !this.isAIFinalMoving) {
+                    return null;
+                }
+                
+                return data.player === 'white' ? 'player1Move' : 'player2Move';
+            },
+            
+            // Token events - capture sounds
+            'token:captured': (data) => {
+                // Skip if explicitly marked as simulation (but not if it's the actual AI move)
+                if (data && data.forAISimulation === true && !data.isActualAIMove) {
+                    return null;
+                }
+                
+                // Skip during AI simulation unless it's the final move (but not if explicitly marked as actual AI move)
+                if (this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove) {
+                    return null;
+                }
+                
+                // Play sound based on the color of the captured token
+                if (data && data.color) {
+                    console.log("[SoundManager] Token captured:", data.color);
+                    // player1-capture.mp3 for white token captured
+                    // player2-capture.mp3 for black token captured
+                    return data.color === 'white' ? 'player1Capture' : 'player2Capture';
+                }
+                
+                // Fallback if color data is missing
+                return 'player1Capture';
+            },
+            
+            // Also listen to the notified capture event for backward compatibility
+            'token:captureNotified': (data) => {
+                // Skip if explicitly marked as simulation
+                if (data && data.forAISimulation === true && !data.isActualAIMove) {
+                    return null;
+                }
+                
+                // Skip during AI simulation unless it's the final move
+                if (this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove) {
+                    return null;
+                }
+                
+                // Play sound based on the color of the captured token
+                if (data && data.color) {
+                    console.log("[SoundManager] Token capture notified:", data.color);
+                    // player1-capture.mp3 for white token captured
+                    // player2-capture.mp3 for black token captured
+                    return data.color === 'white' ? 'player1Capture' : 'player2Capture';
+                }
+                
+                // Fallback if color data is missing
+                return 'player1Capture';
             },
             
             // Game state
             'game:over': data => {
+                // Skip if explicitly marked as simulation
+                if (data && data.forAISimulation === true) {
+                    return null;
+                }
+                
                 const game = window.game;
                 // For tournament mode
                 if (game && game.isTournamentMode) {
@@ -133,7 +279,10 @@ class SoundManager {
                         ? soundNameOrFn(data) 
                         : soundNameOrFn;
                     
-                    this.playSound(soundName);
+                    // Only play if soundName is not null
+                    if (soundName) {
+                        this.playSound(soundName);
+                    }
                 } catch (e) {
                     console.warn(`Error playing sound for event ${eventName}:`, e);
                 }
@@ -148,37 +297,70 @@ class SoundManager {
      * Add button click sounds to various UI elements
      */
     addButtonClickSounds() {
-        // Add click listeners to buttons, with debounce to prevent multiple sounds
-        let lastClickTime = 0;
-        
-        document.addEventListener('click', e => {
-            // Debounce clicks to prevent double sounds
-            const now = Date.now();
-            if (now - lastClickTime < 50) return;
-            lastClickTime = now;
+        // Add direct click listeners to all buttons
+        // This approach is more reliable than event delegation for complex apps
+        const addButtonSounds = () => {
+            // Find all buttons in the document
+            const allButtons = document.querySelectorAll('button');
             
-            // Find the clicked button or clickable element
-            const button = e.target.closest('button');
-            const cell = e.target.closest('.cell');
-            const ladderOpponent = e.target.closest('.ladder-opponent');
+            allButtons.forEach(button => {
+                // Skip buttons that already have sound handlers
+                if (button.hasAttribute('data-sound-added')) return;
+                
+                // Add the sound handler
+                button.addEventListener('click', (e) => {
+                    // Skip sound toggle button to avoid double sounds
+                    if (button.id === 'sound-toggle-btn' || button.closest('#sound-toggle')) return;
+                    
+                    // Determine which sound to play based on context
+                    if (button.closest('#main-menu') || 
+                        button.classList.contains('large-btn') ||
+                        button.closest('.tournament-controls')) {
+                        this.playSound('menuButtonClick');
+                    } else {
+                        this.playSound('buttonClick');
+                    }
+                }, true); // Use capture to ensure we get the event before stopPropagation
+                
+                // Mark the button as having a sound handler
+                button.setAttribute('data-sound-added', 'true');
+            });
             
-            // Skip sound toggle button to avoid double sounds
-            if (button && (button.id === 'sound-toggle-btn' || button.closest('#sound-toggle'))) return;
-            
-            // Play appropriate sound based on context
-            if (button) {
-                if (button.closest('#main-menu') || 
-                    button.classList.contains('large-btn')) {
-                    this.playSound('menuButtonClick');
-                } else {
+            // Also add event delegation for dynamically added elements
+            document.addEventListener('click', e => {
+                // Handle cell clicks (but not token clicks)
+                const cell = e.target.closest('.cell');
+                const token = e.target.closest('.token');
+                
+                if (cell && !token && !cell.hasAttribute('data-sound-added')) {
+                    cell.setAttribute('data-sound-added', 'true');
                     this.playSound('buttonClick');
                 }
-            } else if (cell && !cell.querySelector('.token:hover') && !e.target.closest('.token')) {
-                // For cell clicks (but not token clicks)
-                this.playSound('buttonClick');
-            } else if (ladderOpponent) {
-                this.playSound('menuButtonClick');
-            }
+                
+                // Handle ladder opponent clicks in tournament mode
+                const ladderOpponent = e.target.closest('.ladder-opponent');
+                if (ladderOpponent && !ladderOpponent.hasAttribute('data-sound-added')) {
+                    ladderOpponent.setAttribute('data-sound-added', 'true');
+                    this.playSound('menuButtonClick');
+                }
+            });
+        };
+        
+        // Add sounds immediately
+        addButtonSounds();
+        
+        // Also periodically check for new buttons
+        setInterval(addButtonSounds, 1000);
+        
+        // Check after DOM changes
+        const observer = new MutationObserver(() => {
+            addButtonSounds();
+        });
+        
+        // Start observing
+        observer.observe(document.body, { 
+            childList: true, 
+            subtree: true 
         });
     }
     

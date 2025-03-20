@@ -13,80 +13,80 @@ class GameState {
         this.redoStack = [];
     }
 
-    /**
-     * Apply a move and save state for undo
-     * @param {Object} move - The move to apply
-     * @param {string} color - Player color making the move
-     * @param {Object} options - Additional options
-     * @returns {Array} - Captured tokens during this move
-     */
-    applyMove(move, color, options = {}) {
-        const skipRendering = options.skipRendering || false;
-        const forAISimulation = options.forAISimulation || false;
+	/**
+	 * Apply a move and save state for undo
+	 * @param {Object} move - The move to apply
+	 * @param {string} color - Player color making the move
+	 * @param {Object} options - Additional options
+	 * @returns {Array} - Captured tokens during this move
+	 */
+	applyMove(move, color, options = {}) {
+		const skipRendering = options.skipRendering || false;
+		const forAISimulation = options.forAISimulation || false;
 
-        // Emit state:saving event before saving state
-        if (!forAISimulation && this.events) {
-            this.events.emit('state:saving', {
-                move: move,
-                color: color
-            });
-        }
+		// Emit state:saving event before saving state
+		if (!forAISimulation && this.events) {
+			this.events.emit('state:saving', {
+				move: move,
+				color: color
+			});
+		}
 
-        if (!forAISimulation) {
-            // For regular gameplay, save full state for undo/redo
-            this.saveFullState({
-                grid: this.board.getDeepCopy(),
-                currentPlayer: color,
-                lastMoveFrom: this.board.lastMoveFrom ? {...this.board.lastMoveFrom} : null,
-                lastMoveTo: this.board.lastMoveTo ? {...this.board.lastMoveTo} : null,
-                lastCapturedTokens: this.board.lastCapturedTokens ? [...this.board.lastCapturedTokens] : [],
-                additionalState: options.additionalState || {}
-            });
-            
-            // Clear redo stack when making a new move
-            if (options.clearRedoStack) {
-                this.redoStack = [];
-                
-                // Emit redoStack:cleared event
-                if (this.events) {
-                    this.events.emit('redoStack:cleared', {
-                        timestamp: Date.now()
-                    });
-                }
-            }
-        } else {
-            // For AI simulation, use a more efficient approach that only tracks affected positions
-            this.saveMinimalState(move, color);
-        }
+		if (!forAISimulation) {
+			// For regular gameplay, save full state for undo/redo
+			this.saveFullState({
+				grid: this.board.getDeepCopy(),
+				currentPlayer: color,
+				lastMoveFrom: this.board.lastMoveFrom ? {...this.board.lastMoveFrom} : null,
+				lastMoveTo: this.board.lastMoveTo ? {...this.board.lastMoveTo} : null,
+				lastCapturedTokens: this.board.lastCapturedTokens ? [...this.board.lastCapturedTokens] : [],
+				additionalState: options.additionalState || {}
+			});
+			
+			// Clear redo stack when making a new move
+			if (options.clearRedoStack) {
+				this.redoStack = [];
+				
+				// Emit redoStack:cleared event
+				if (this.events) {
+					this.events.emit('redoStack:cleared', {
+						timestamp: Date.now()
+					});
+				}
+			}
+		} else {
+			// For AI simulation, use a more efficient approach that only tracks affected positions
+			this.saveMinimalState(move, color);
+		}
 
-        // Before executing move, reset active status for current player's tokens if needed
-        // This should only be done at the start of a player's turn, not during move simulation
-        if (options.resetActiveStatus) {
-            this.board.resetActiveStatus(color);
-            
-            // Emit tokens:activated event
-            if (!forAISimulation && this.events) {
-                this.events.emit('tokens:activated', {
-                    color: color
-                });
-            }
-        }
+		// Before executing move, reset active status for current player's tokens if needed
+		// This should only be done at the start of a player's turn, not during move simulation
+		if (options.resetActiveStatus) {
+			this.board.resetActiveStatus(color);
+			
+			// Emit tokens:activated event
+			if (!forAISimulation && this.events) {
+				this.events.emit('tokens:activated', {
+					color: color
+				});
+			}
+		}
 
-        // Execute the move
-        const capturedTokens = this.moveManager.executeMove(move, color, skipRendering);
-        
-        // Emit state:applied event after applying move
-        if (!forAISimulation && this.events) {
-            this.events.emit('state:applied', {
-                move: move,
-                color: color,
-                capturedTokens: capturedTokens
-            });
-        }
-        
-        return capturedTokens;
-    }
-
+		// Execute the move
+		const capturedTokens = this.moveManager.executeMove(move, color, skipRendering);
+		
+		// Emit state:applied event after applying move
+		if (this.events) {
+			this.events.emit('state:applied', {
+				move: move,
+				color: color,
+				capturedTokens: capturedTokens,
+				forAISimulation: forAISimulation  // Add flag to event data
+			});
+		}
+		
+		return capturedTokens;
+	}
     /**
      * Save full game state (used for regular gameplay)
      */
