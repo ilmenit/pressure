@@ -1071,14 +1071,20 @@ class TournamentManager {
     }
     
     /**
-     * Generate difficulty stars display
-     * @param {number} difficulty - The difficulty level
-     * @param {number} maxStars - Maximum number of stars to display (default is 6)
-     * @returns {string} HTML string with stars
-     */
-    generateDifficultyStars(difficulty, maxStars = 6) {
-        return 'â˜…'.repeat(Math.min(difficulty, maxStars)) + 'â˜†'.repeat(Math.max(0, maxStars - difficulty));
-    }
+	 * Generate difficulty stars display using HTML entities instead of Unicode
+	 * @param {number} difficulty - The difficulty level
+	 * @param {number} maxStars - Maximum number of stars to display (default is 6)
+	 * @returns {string} HTML string with stars
+	 */
+	generateDifficultyStars(difficulty, maxStars = 6) {
+		// Use HTML entities for the stars
+		const filledStar = '&starf;'; // HTML entity for filled star ★
+		const emptyStar = '&star;';   // HTML entity for empty star ☆
+		
+		// Return the HTML string with the right number of filled and empty stars
+		return filledStar.repeat(Math.min(difficulty, maxStars)) + 
+			   emptyStar.repeat(Math.max(0, maxStars - difficulty));
+	}
     
     /**
      * Setup the player display
