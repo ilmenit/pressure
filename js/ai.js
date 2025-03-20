@@ -1,6 +1,7 @@
 /**
  * AI Player with optimized move/undo system
  * Refactored to use event-driven architecture with simulation context
+ * Enhanced with transposition table for performance optimization
  */
 class AIPlayer {
     constructor(board, moveManager, gameState, game) {
@@ -13,6 +14,11 @@ class AIPlayer {
         this.nodesEvaluated = 0;
         this.isThinking = false;
         this.thinkingStartTime = 0;
+        
+        // Transposition table optimization
+        this.transpositionTable = new Map();
+        this.tableCacheHits = 0;
+        this.maxTableSize = 1000000; // Limit table size to prevent memory issues
         
         // Set up event listeners
         if (this.events) {
@@ -61,6 +67,49 @@ class AIPlayer {
     }
 
     /**
+     * Clear and reset the transposition table
+     */
+    clearTranspositionTable() {
+        this.transpositionTable.clear();
+        this.tableCacheHits = 0;
+    }
+
+    /**
+     * Generate a hash for the current board state
+     * @returns {string} A unique string representation of the board
+     */
+    getBoardHash() {
+        let hash = '';
+        
+        // Include board representation with tokens
+        for (let row = 0; row < this.board.size; row++) {
+            for (let col = 0; col < this.board.size; col++) {
+                const token = this.board.getTokenAt(row, col);
+                if (!token) {
+                    hash += '0';
+                } else if (token.color === 'white') {
+                    hash += token.isCaptured ? '1' : '2';
+                } else { // black
+                    hash += token.isCaptured ? '3' : '4';
+                }
+            }
+        }
+        
+        // Include active status separately for clarity
+        hash += '-';
+        for (let row = 0; row < this.board.size; row++) {
+            for (let col = 0; col < this.board.size; col++) {
+                const token = this.board.getTokenAt(row, col);
+                if (token && !token.isCaptured) {
+                    hash += token.isActive ? '1' : '0';
+                }
+            }
+        }
+        
+        return hash;
+    }
+
+    /**
      * Get the best move for the current player with progress callback
      * @param {string} color - The player color ('black' or 'white')
      * @param {Function} progressCallback - Callback for AI progress updates
@@ -70,6 +119,9 @@ class AIPlayer {
         // Start thinking timer
         this.isThinking = true;
         this.thinkingStartTime = performance.now();
+        
+        // Clear transposition table for a fresh search
+        this.clearTranspositionTable();
         
         // Emit AI thinking started event
         if (this.events) {
@@ -226,7 +278,12 @@ class AIPlayer {
             evaluatedMoves.sort((a, b) => b.score - a.score);
             
             // Print performance info
+            const cacheEfficiency = this.nodesEvaluated > 0 ? 
+                Math.round(this.tableCacheHits / this.nodesEvaluated * 100) : 0;
+                
             console.log(`AI evaluated ${this.nodesEvaluated} positions at depth ${searchDepth}`);
+            console.log(`Transposition table hits: ${this.tableCacheHits} (${cacheEfficiency}% cache efficiency)`);
+            console.log(`Table size: ${this.transpositionTable.size} entries`);
             console.timeEnd('AI thinking time');
             
             // Final notification that a move has been selected
@@ -291,6 +348,7 @@ class AIPlayer {
                     move: selectedMove,
                     evaluatedMoves: evaluatedMoves.length,
                     nodesEvaluated: this.nodesEvaluated,
+                    cacheHits: this.tableCacheHits,
                     thinkingTime: performance.now() - this.thinkingStartTime
                 });
             }
@@ -344,71 +402,176 @@ class AIPlayer {
         });
     }
     
+	/**
+	 * Principal Variation Search (PVS) - A more efficient minimax variant
+	 * This replaces the original minimax method in AIPlayer class
+	 * 
+	 * @param {number} depth - Current search depth
+	 * @param {string} color - Current player color
+	 * @param {number} alpha - Alpha value for pruning
+	 * @param {number} beta - Beta value for pruning
+	 * @param {boolean} isMaximizing - Whether this is a maximizing node
+	 * @returns {number} - Evaluation score
+	 */
+	minimax(depth, color, alpha, beta, isMaximizing) {
+		this.nodesEvaluated++;
+		const oppositeColor = color === 'black' ? 'white' : 'black';
+		
+		// Create hash key for current board position
+		const boardHash = this.getBoardHash();
+		const hashKey = `${boardHash}:${depth}:${isMaximizing ? 1 : 0}`;
+		
+		// Check transposition table for cached result
+		if (this.transpositionTable.has(hashKey)) {
+			this.tableCacheHits++;
+			return this.transpositionTable.get(hashKey);
+		}
+		
+		// Terminal node checks
+		const capturedCounts = this.board.countCapturedTokens();
+		
+		// Check for wins/losses
+		if (capturedCounts[oppositeColor] >= 6) {
+			const result = isMaximizing ? 1 : -1; // Win
+			this.storeTranspositionResult(hashKey, result);
+			return result;
+		}
+		
+		if (capturedCounts[color] >= 6) {
+			const result = isMaximizing ? -1 : 1; // Loss
+			this.storeTranspositionResult(hashKey, result);
+			return result;
+		}
+		
+		// Leaf node - evaluate position
+		if (depth === 0) {
+			// Convert score from 0-1 range to -1 to 1 range
+			const score = (this.evaluatePosition(color) * 2) - 1;
+			const result = isMaximizing ? score : -score;
+			this.storeTranspositionResult(hashKey, result);
+			return result;
+		}
+		
+		// Check for no valid moves
+		const possibleMoves = this.moveManager.generatePossibleMoves(color);
+		if (possibleMoves.length === 0) {
+			const result = isMaximizing ? -1 : 1; // Loss - no moves
+			this.storeTranspositionResult(hashKey, result);
+			return result;
+		}
+		
+		// Order moves to improve alpha-beta pruning
+		possibleMoves.sort((a, b) => {
+			// Prefer pushes over simple moves
+			if (a.type === 'push' && b.type !== 'push') return -1;
+			if (a.type !== 'push' && b.type === 'push') return 1;
+			return 0;
+		});
+
+		// FIXED: Simplify implementation and fix null window search issues
+		if (isMaximizing) {
+			let maxEval = -Infinity;
+			let firstChild = true;
+			
+			for (let i = 0; i < possibleMoves.length; i++) {
+				this.applyMove(possibleMoves[i], color);
+				
+				let score;
+				if (firstChild) {
+					// First child is searched with full window
+					score = this.minimax(depth - 1, oppositeColor, alpha, beta, false);
+					firstChild = false;
+				} else {
+					// FIXED: Use appropriate epsilon for floating-point scores
+					// We search with a null window first
+					score = this.minimax(depth - 1, oppositeColor, alpha, alpha + 0.0001, false);
+					
+					// FIXED: Correct condition for re-search
+					if (score > alpha) {
+						// If the move looks promising, re-search with full window
+						score = this.minimax(depth - 1, oppositeColor, alpha, beta, false);
+					}
+				}
+				
+				this.gameState.undoLastMove();
+				
+				if (score > maxEval) {
+					maxEval = score;
+				}
+				
+				alpha = Math.max(alpha, maxEval);
+				
+				// Alpha-beta pruning
+				if (alpha >= beta) {
+					break;
+				}
+			}
+			
+			this.storeTranspositionResult(hashKey, maxEval);
+			return maxEval;
+		} else {
+			let minEval = Infinity;
+			let firstChild = true;
+			
+			for (let i = 0; i < possibleMoves.length; i++) {
+				this.applyMove(possibleMoves[i], color);
+				
+				let score;
+				if (firstChild) {
+					// First child is searched with full window
+					score = this.minimax(depth - 1, oppositeColor, alpha, beta, true);
+					firstChild = false;
+				} else {
+					// FIXED: Use appropriate epsilon for floating-point scores
+					// We search with a null window first
+					score = this.minimax(depth - 1, oppositeColor, beta - 0.0001, beta, true);
+					
+					// FIXED: Correct condition for re-search
+					if (score < beta) {
+						// If the move looks promising, re-search with full window
+						score = this.minimax(depth - 1, oppositeColor, alpha, beta, true);
+					}
+				}
+				
+				this.gameState.undoLastMove();
+				
+				if (score < minEval) {
+					minEval = score;
+				}
+				
+				beta = Math.min(beta, minEval);
+				
+				// Alpha-beta pruning
+				if (alpha >= beta) {
+					break;
+				}
+			}
+			
+			this.storeTranspositionResult(hashKey, minEval);
+			return minEval;
+		}
+	}
+    
     /**
-     * Simplified minimax with alpha-beta pruning
+     * Store result in transposition table with memory management
      */
-    minimax(depth, color, alpha, beta, isMaximizing) {
-        this.nodesEvaluated++;
-        const oppositeColor = color === 'black' ? 'white' : 'black';
-        
-        // Terminal node checks
-        const capturedCounts = this.board.countCapturedTokens();
-        
-        // Check for wins/losses
-        if (capturedCounts[oppositeColor] >= 6) {
-            return isMaximizing ? 1 : -1; // Win
-        }
-        
-        if (capturedCounts[color] >= 6) {
-            return isMaximizing ? -1 : 1; // Loss
-        }
-        
-        // Check for no valid moves - use cached moves when possible
-        const possibleMoves = this.moveManager.generatePossibleMoves(color);
-        if (possibleMoves.length === 0) {
-            return isMaximizing ? -1 : 1; // Loss - no moves
-        }
-        
-        // Leaf node - evaluate position
-        if (depth === 0) {
-            // Convert score from 0-1 range to -1 to 1 range
-            const score = (this.evaluatePosition(color) * 2) - 1;
-            return isMaximizing ? score : -score;
-        }
-        
-        if (isMaximizing) {
-            let maxEval = -Infinity;
-            
-            for (const move of possibleMoves) {
-                this.applyMove(move, color);
-                const evaluation = this.minimax(depth - 1, oppositeColor, alpha, beta, false);
-                this.gameState.undoLastMove();
+    storeTranspositionResult(key, value) {
+        // Implement a simple memory management strategy
+        if (this.transpositionTable.size >= this.maxTableSize) {
+            // If table gets too large, clear the older half to avoid memory issues
+            // This is a simple approach - more sophisticated replacement strategies exist
+            if (this.transpositionTable.size >= this.maxTableSize * 0.9) {
+                const entries = Array.from(this.transpositionTable.entries());
+                const halfSize = Math.floor(entries.length / 2);
                 
-                maxEval = Math.max(maxEval, evaluation);
-                alpha = Math.max(alpha, evaluation);
+                this.transpositionTable = new Map(entries.slice(halfSize));
                 
-                // Alpha-beta pruning
-                if (beta <= alpha) break;
+                console.log(`Transposition table pruned to ${this.transpositionTable.size} entries`);
             }
-            
-            return maxEval;
-        } else {
-            let minEval = Infinity;
-            
-            for (const move of possibleMoves) {
-                this.applyMove(move, color);
-                const evaluation = this.minimax(depth - 1, oppositeColor, alpha, beta, true);
-                this.gameState.undoLastMove();
-                
-                minEval = Math.min(minEval, evaluation);
-                beta = Math.min(beta, evaluation);
-                
-                // Alpha-beta pruning
-                if (beta <= alpha) break;
-            }
-            
-            return minEval;
         }
+        
+        // Store the result
+        this.transpositionTable.set(key, value);
     }
     
     /**
