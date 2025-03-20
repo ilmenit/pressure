@@ -611,40 +611,41 @@ class TutorialService {
     }
     
     /**
-     * Show tutorial completion screen
-     */
-    showTutorialComplete() {
-        console.log("Tutorial complete!");
-        
-        // Update state
-        this.state = 'COMPLETED';
-        
-        // Clear highlights
-        this.uiManager.clearHighlights();
-        
-        // Show completion message
-        this.uiManager.showCompletionMessage();
-        
-        // Automatically return to main menu after a delay
-        setTimeout(() => {
-            this.end();
-            this.uiManager.showMainMenu();
-            
-            // Emit event
-            if (this.events) {
-                this.events.emit('tutorial:completedAndReturned', {
-                    timestamp: Date.now()
-                });
-            }
-        }, 8000);
-        
-        // Emit event
-        if (this.events) {
-            this.events.emit('tutorial:completed', {
-                timestamp: Date.now()
-            });
-        }
-    }
+	 * Show tutorial completion screen
+	 * Replace this method in your TutorialService class
+	 */
+	showTutorialComplete() {
+		console.log("Tutorial complete!");
+		
+		// Update state
+		this.state = 'COMPLETED';
+		
+		// Clear highlights
+		this.uiManager.clearHighlights();
+		
+		// Show completion message
+		this.uiManager.showCompletionMessage();
+		
+		// Emit tutorial:completed event FIRST to trigger sound
+		if (this.events) {
+			this.events.emit('tutorial:completed', {
+				timestamp: Date.now()
+			});
+		}
+		
+		// Automatically return to main menu after a delay
+		setTimeout(() => {
+			this.end();
+			this.uiManager.showMainMenu();
+			
+			// Emit event
+			if (this.events) {
+				this.events.emit('tutorial:completedAndReturned', {
+					timestamp: Date.now()
+				});
+			}
+		}, 8000);
+	}
     
     /**
      * Save the current game state

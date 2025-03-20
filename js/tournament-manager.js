@@ -702,7 +702,7 @@ class TournamentManager {
             const completionElement = completeScreen.querySelector('.tournament-victory');
             if (completionElement) {
                 completionElement.innerHTML = `
-                    <div class="tournament-trophy">🏆</div>
+                    <div class="tournament-trophy">ðŸ†</div>
                     <h2>Congratulations!</h2>
                     <p>You have defeated all opponents and become the Pressure Champion!</p>
                     <p class="final-stats">You've mastered the game by defeating ${this.opponents.length} unique opponents!</p>
@@ -873,37 +873,75 @@ class TournamentManager {
         }
     }
     
-    /**
-     * Back to main menu
-     */
-    backToMainMenu() {
-        const tournamentScreen = document.getElementById('tournament-screen');
-        const mainMenu = document.getElementById('main-menu');
-        
-        if (tournamentScreen) {
-            tournamentScreen.classList.add('hidden');
-        }
-        
-        if (mainMenu) {
-            mainMenu.classList.remove('hidden');
-            
-            // Set focus to first button in main menu for keyboard accessibility
-            const firstButton = mainMenu.querySelector('button');
-            if (firstButton) {
-                setTimeout(() => {
-                    firstButton.focus();
-                }, 100);
-            }
-        }
-        
-        // Emit menu:shown event
-        if (this.events) {
-            this.events.emit('menu:shown', {
-                from: 'tournament'
-            });
-        }
-    }
-    
+	/**
+	 * Clean up tournament-specific UI elements
+	 */
+	cleanupTournamentUI() {
+		// Hide opponent display
+		const opponentDisplay = document.getElementById('opponent-display');
+		if (opponentDisplay) {
+			opponentDisplay.classList.add('hidden');
+		}
+		
+		// Remove player display entirely
+		const playerDisplay = document.getElementById('player-display');
+		if (playerDisplay && playerDisplay.parentNode) {
+			playerDisplay.parentNode.removeChild(playerDisplay);
+		}
+		
+		// Hide and clear commentary box
+		const commentaryBox = document.getElementById('commentary-box');
+		if (commentaryBox) {
+			commentaryBox.classList.remove('active');
+			commentaryBox.textContent = '';
+		}
+		
+		// Reset tournament mode flags in game
+		if (this.game) {
+			this.game.isTournamentMode = false;
+			this.game.currentOpponent = null;
+		}
+		
+		// Reset local player color tracking
+		this.playerColor = null;
+		this.aiColor = null;
+	}
+
+
+	
+	/**
+	 * Back to main menu 
+	 */
+	backToMainMenu() {
+		const tournamentScreen = document.getElementById('tournament-screen');
+		const mainMenu = document.getElementById('main-menu');
+		
+		// Clean up tournament-specific UI elements
+		this.cleanupTournamentUI();
+		
+		if (tournamentScreen) {
+			tournamentScreen.classList.add('hidden');
+		}
+		
+		if (mainMenu) {
+			mainMenu.classList.remove('hidden');
+			
+			// Set focus to first button in main menu for keyboard accessibility
+			const firstButton = mainMenu.querySelector('button');
+			if (firstButton) {
+				setTimeout(() => {
+					firstButton.focus();
+				}, 100);
+			}
+		}
+		
+		// Emit menu:shown event
+		if (this.events) {
+			this.events.emit('menu:shown', {
+				from: 'tournament'
+			});
+		}
+	}    
     /**
      * Start a match with the current opponent
      */
@@ -1039,7 +1077,7 @@ class TournamentManager {
      * @returns {string} HTML string with stars
      */
     generateDifficultyStars(difficulty, maxStars = 6) {
-        return '★'.repeat(Math.min(difficulty, maxStars)) + '☆'.repeat(Math.max(0, maxStars - difficulty));
+        return 'â˜…'.repeat(Math.min(difficulty, maxStars)) + 'â˜†'.repeat(Math.max(0, maxStars - difficulty));
     }
     
     /**
