@@ -59,17 +59,36 @@
 /* Rules Screen Styles */
 #rules-screen {
     z-index: 10;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 0;
+}
+
+#rules-screen h1 {
+    margin: 15px 0;
 }
 
 .rules-container {
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 0 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    height: calc(100% - 80px); /* Adjust for header height */
+    overflow: hidden; /* Prevent double scrollbars */
+}
+
+.rules-content {
+    flex: 1;
+    overflow-y: auto;
     background-color: #1E1E1E;
     border-radius: 8px;
-    max-height: calc(100vh - 150px);
-    overflow-y: auto;
+    padding: 20px;
+    margin-bottom: 20px; /* Space between content and button */
 }
 
 .rules-content h3 {
@@ -100,8 +119,16 @@
 }
 
 .rules-button-container {
-    text-align: center;
-    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 20px 0;
+    background-color: transparent;
+    width: 100%;
+}
+
+.rules-button-container .large-btn {
+    min-width: 200px;
+    max-width: 300px;
 }
 
 /* Token examples for rules */
@@ -275,4 +302,25 @@
 @keyframes indicator-appear {
     from { transform: translateX(-50%) translateY(-10px); opacity: 0; }
     to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+/* Responsive adaptations for the rules screen */
+@media (max-height: 700px) {
+    .rules-container {
+        height: calc(100% - 60px);
+    }
+    
+    .rules-content {
+        margin-bottom: 15px;
+    }
+    
+    .rules-button-container {
+        padding: 5px 0 15px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .rules-content {
+        padding: 15px;
+    }
 }
