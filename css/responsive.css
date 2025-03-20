@@ -1,0 +1,286 @@
+/* Responsive Design Adjustments */
+
+/* Menu content responsive layout */
+@media (min-width: 768px) {
+    .menu-content {
+        flex-direction: row;
+        gap: 20px;
+    }
+    
+    .menu-left {
+        width: 40%;
+        min-width: 300px;
+    }
+    
+    .menu-right {
+        width: 60%;
+        flex: 1;
+    }
+}
+
+/* Responsive adjustments for modal buttons */
+@media (min-width: 500px) {
+    .modal-buttons {
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .modal-buttons button {
+        flex: 1;
+        min-width: 150px;
+    }
+}
+
+/* Game screen responsive adjustments */
+@media (max-height: 700px) {
+    h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .game-controls button {
+        padding: 8px 20px;
+        font-size: 1rem;
+    }
+    
+    .button-icon {
+        height: 20px;
+        width: 20px;
+        margin-right: 8px;
+    }
+    
+    .rules-container {
+        padding: 10px;
+        max-height: 60vh;
+    }
+}
+
+/* Adjust for landscape orientation */
+@media (max-height: 600px) {
+    #game-screen {
+        grid-template-rows: auto minmax(0, 1fr) auto auto;
+        gap: 5px;
+        padding: 5px 0;
+    }
+    
+    .game-status {
+        min-height: 40px;
+        padding: 5px 10px;
+        font-size: 0.9rem;
+    }
+    
+    .game-controls button {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+    }
+    
+    #game-screen h1 {
+        margin: 5px 0;
+        font-size: 1.5rem;
+    }
+}
+
+/* Very small screens */
+@media (max-height: 500px) {
+    #game-screen {
+        gap: 2px;
+    }
+    
+    #game-screen h1 {
+        font-size: 1.3rem;
+        margin: 2px 0;
+    }
+    
+    .game-status {
+        min-height: 35px;
+        padding: 5px;
+    }
+}
+
+/* For very small screens */
+@media (max-width: 350px) or (max-height: 500px) {
+    h1 {
+        font-size: 1.3rem;
+        margin-bottom: 0.3rem;
+    }
+    
+    h2 {
+        font-size: 1.1rem;
+    }
+    
+    .player-type-btn, .ai-level-btn {
+        font-size: 0.9rem;
+        padding: 8px 10px;
+    }
+    
+    .game-controls button {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+        min-width: 80px;
+    }
+    
+    .button-icon {
+        height: 18px;
+        width: 18px;
+        margin-right: 6px;
+    }
+    
+    .rules-container {
+        padding: 8px;
+    }
+    
+    .rules-content h3 {
+        font-size: 1rem;
+    }
+    
+    .rules-content p, .rules-content ul {
+        font-size: 0.9rem;
+    }
+    
+    .modal-content {
+        padding: 15px;
+        width: 95%;
+    }
+    
+    .modal-buttons button {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+    .capture-grid {
+        transform: scale(0.9);
+        transform-origin: left top;
+    }
+    
+    .token-example {
+        flex-wrap: wrap;
+    }
+    
+    .token-description {
+        width: 100%;
+        margin-top: 5px;
+    }
+    
+    .button-icon {
+        height: 18px;
+        width: 18px;
+        margin-right: 6px;
+    }
+    
+    .rules-container {
+        padding: 8px;
+    }
+}
+
+/* Make sure main menu is responsive */
+@media (max-width: 400px) {
+    .menu-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+        margin-right: 10px;
+    }
+    
+    .mode-buttons .large-btn {
+        padding-left: 10px;
+    }
+}
+
+/* Responsive adjustments for menu components */
+@media (max-width: 600px) {
+    .menu-icon-container {
+        width: 60px;
+        height: 60px;
+        min-width: 60px;
+        margin-right: 10px;
+    }
+    
+    .mode-buttons .large-btn {
+        margin-bottom: 15px;
+    }
+    
+    .menu-grid {
+        border-spacing: 0 15px;
+        width: 95%;
+    }
+    
+    .icon-cell {
+        padding-right: 15px;
+        width: 60px;
+    }
+    
+    .menu-icon-container {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .button-cell .large-btn {
+        height: 36px;
+        padding: 0 15px;
+    }
+    
+    .menu-item {
+        margin-bottom: 20px;
+    }
+    
+    .mode-buttons .large-btn {
+        height: 36px;
+        padding: 0 15px;
+    }
+    
+    .sound-toggle {
+        top: 5px;
+        right: 5px;
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 400px) {
+    .menu-icon-container {
+        width: 50px;
+        height: 50px;
+        min-width: 50px;
+        margin-right: 8px;
+    }
+    
+    .mode-buttons .large-btn {
+        padding-left: 10px;
+        margin-bottom: 12px;
+    }
+    
+    .menu-grid {
+        border-spacing: 0 12px;
+    }
+    
+    .icon-cell {
+        padding-right: 10px;
+        width: 50px;
+    }
+    
+    .menu-icon-container {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .button-cell .large-btn {
+        height: 34px;
+        padding: 0 10px;
+        font-size: 0.9rem;
+    }
+    
+    .menu-item {
+        margin-bottom: 15px;
+    }
+    
+    .mode-buttons .large-btn {
+        height: 34px;
+        padding: 0 10px;
+        font-size: 0.9rem;
+    }
+}

@@ -398,7 +398,7 @@ class UIManager {
 		
 		// Update status to show piece is selected
 		const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
-		this.updateStatus(`${currentPlayer} turn. Token selected. Choose destination.`);
+		this.updateStatus(`${currentPlayer} turn. Choose destination.`);
 		
 		// Check if this is a valid token that should trigger a sound
 		const isValidToken = token && 

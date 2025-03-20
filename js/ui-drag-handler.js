@@ -255,7 +255,7 @@ class UIDragHandler {
         
         // Update status to show token is being dragged
         const currentPlayer = this.game.currentPlayer.charAt(0).toUpperCase() + this.game.currentPlayer.slice(1);
-        this.uiManager.updateStatus(`${currentPlayer} turn. Dragging token. Drop on a highlighted cell.`);
+        this.uiManager.updateStatus(`${currentPlayer} turn. Drop on highlighted cell.`);
         
         // Emit targets:highlighted event
         this.events.emit('dropTargets:highlighted', {
