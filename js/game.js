@@ -317,77 +317,73 @@ class Game {
 			level: aiLevel
 		});
 		
-		// Create a timer to ensure AI has a minimum thinking time for better UX
-		// Even if calculation is instant, display thinking for at least 500ms
-		const startTime = performance.now();
-		const MIN_THINKING_TIME = 500; // ms
-		
 		// Define progress callback for AI to report status to UI
 		const progressCallback = (progress) => {
 			this.events.emit('ai:progress', progress);
 		};
 		
-		// Get best move from AI with progress updates
-		const aiMove = this.ai.getBestMove(this.currentPlayer, progressCallback);
-		
-		// Calculate elapsed time and enforce minimum thinking time for UX
-		const elapsedTime = performance.now() - startTime;
-		const remainingTime = Math.max(0, MIN_THINKING_TIME - elapsedTime);
-		
-		// Emit ai:moveSelected event
-		this.events.emit('ai:moveSelected', {
-			move: aiMove,
-			player: this.currentPlayer
-		});
-		
-		// Execute move after minimum thinking time has elapsed
+		// Add a small delay to allow UI to update before AI calculation starts
 		setTimeout(() => {
-			if (aiMove) {
-				// For a real AI move, we want to use MoveManager's executeMove with AI flags
-				// This requires additional processing to make sure the flags pass through properly
-				
-				// First, create options for the GameState applyMove method
-				const options = {
-					resetActiveStatus: true,
-					clearRedoStack: true,
-					skipRendering: false,
-					isActualAIMove: true,  // Flag to indicate this is the actual AI move
-					additionalState: {
-						winner: this.winner,
-						winReason: this.winReason,
-						isGameActive: this.isGameActive
-					}
-				};
-				
-				// Execute the move directly using GameState to include our special flag
-				const capturedTokens = this.gameState.applyMove(aiMove, this.currentPlayer, options);
-				
-				// Update UI buttons
-				if (this.ui) {
-					this.ui.updateUndoRedoButtons();
-				}
-				
-				// Emit move:executed event with special flag
-				this.events.emit('move:executed', {
-					move: aiMove,
-					player: this.currentPlayer,
-					capturedTokens: capturedTokens,
-					forAISimulation: false,    // Not a simulation
-					isActualAIMove: true       // Flag to indicate this is the actual AI move
-				});
-			} else {
-				// No valid moves - game over
-				this.endGame(this.getOppositeColor(this.currentPlayer), 'No valid moves available');
-			}
+			// Create a timer to ensure AI has a minimum thinking time for better UX
+			const startTime = performance.now();
+			const MIN_THINKING_TIME = 500; // ms
 			
-			// Clear processing flag
-			this.isProcessingAIMove = false;
+			// Get best move from AI with progress updates
+			const aiMove = this.ai.getBestMove(this.currentPlayer, progressCallback);
 			
-			// Emit ai:moveExecuted event
-			this.events.emit('ai:moveExecuted', {
+			// Calculate elapsed time and enforce minimum thinking time for UX
+			const elapsedTime = performance.now() - startTime;
+			const remainingTime = Math.max(0, MIN_THINKING_TIME - elapsedTime);
+			
+			// Emit ai:moveSelected event
+			this.events.emit('ai:moveSelected', {
+				move: aiMove,
 				player: this.currentPlayer
 			});
-		}, remainingTime);
+			
+			// Execute move after minimum thinking time has elapsed
+			setTimeout(() => {
+				if (aiMove) {
+					// Execute the move (rest of original code)
+					const options = {
+						resetActiveStatus: true,
+						clearRedoStack: true,
+						skipRendering: false,
+						isActualAIMove: true,
+						additionalState: {
+							winner: this.winner,
+							winReason: this.winReason,
+							isGameActive: this.isGameActive
+						}
+					};
+					
+					const capturedTokens = this.gameState.applyMove(aiMove, this.currentPlayer, options);
+					
+					if (this.ui) {
+						this.ui.updateUndoRedoButtons();
+					}
+					
+					this.events.emit('move:executed', {
+						move: aiMove,
+						player: this.currentPlayer,
+						capturedTokens: capturedTokens,
+						forAISimulation: false,
+						isActualAIMove: true
+					});
+				} else {
+					// No valid moves - game over
+					this.endGame(this.getOppositeColor(this.currentPlayer), 'No valid moves available');
+				}
+				
+				// Clear processing flag
+				this.isProcessingAIMove = false;
+				
+				// Emit ai:moveExecuted event
+				this.events.emit('ai:moveExecuted', {
+					player: this.currentPlayer
+				});
+			}, remainingTime);
+		}, 50); // Small delay to allow UI rendering before AI calculation
 	}
 
     /**

@@ -316,12 +316,7 @@ class Board {
 							forAISimulation: isSimulation,
 							isActualAIMove: options.isActualAIMove
 						});
-					}
-					
-					// For backward compatibility
-					if (this.game) {
-						this.game.notifyTokenCaptured(token.color, isSimulation);
-					}
+					}					
 				}
 			}
 		}

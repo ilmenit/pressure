@@ -109,9 +109,8 @@ class SoundManager {
         });
         
         // Define event to sound mappings for game events
-        const eventSoundMap = {
-            // UI interactions
-
+		const eventSoundMap = {
+			// UI interactions
 			'ui:tokenSelected': (data) => {
 				// If the UIManager has already validated this token, use that information
 				if (data && data.isValidToken === true) {
@@ -133,137 +132,125 @@ class SoundManager {
 				}
 				return null;
 			},
-            
-            'ui:winModalShown': data => data.winner === 'white' ? 'matchWin' : 'matchLose',
-            
-            // Move execution - filters to detect real vs simulation moves
-            'move:executed': (data) => {
-                // If this is explicitly marked as AI's actual move, play sound
-                if (data && data.isActualAIMove) {
-                    return data.player === 'white' ? 'player1Move' : 'player2Move';
-                }
-                
-                // Skip if explicitly marked as simulation
-                if (data && data.forAISimulation === true) {
-                    return null;
-                }
-                
-                // Skip during AI simulation unless it's the final move
-                if (this.isAISimulating && !this.isAIFinalMoving) {
-                    return null;
-                }
-                
-                return data.player === 'white' ? 'player1Move' : 'player2Move';
-            },
-            
-            // Move types
-            'move:simple': (data) => {
-                // If this is explicitly marked as AI's actual move, play sound
-                if (data && data.isActualAIMove) {
-                    return data.player === 'white' ? 'player1Move' : 'player2Move';
-                }
-                
-                // Skip if explicitly marked as simulation
-                if (data && data.forAISimulation === true) {
-                    return null;
-                }
-                
-                // Skip during AI simulation unless it's the final move
-                if (this.isAISimulating && !this.isAIFinalMoving) {
-                    return null;
-                }
-                
-                return data.player === 'white' ? 'player1Move' : 'player2Move';
-            },
-            
-            'move:push': (data) => {
-                // If this is explicitly marked as AI's actual move, play sound
-                if (data && data.isActualAIMove) {
-                    return data.player === 'white' ? 'player1Move' : 'player2Move';
-                }
-                
-                // Skip if explicitly marked as simulation
-                if (data && data.forAISimulation === true) {
-                    return null;
-                }
-                
-                // Skip during AI simulation unless it's the final move
-                if (this.isAISimulating && !this.isAIFinalMoving) {
-                    return null;
-                }
-                
-                return data.player === 'white' ? 'player1Move' : 'player2Move';
-            },
-            
-            // Token events - capture sounds
-            'token:captured': (data) => {
-                // Skip if explicitly marked as simulation (but not if it's the actual AI move)
-                if (data && data.forAISimulation === true && !data.isActualAIMove) {
-                    return null;
-                }
-                
-                // Skip during AI simulation unless it's the final move (but not if explicitly marked as actual AI move)
-                if (this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove) {
-                    return null;
-                }
-                
-                // Play sound based on the color of the captured token
-                if (data && data.color) {
-                    console.log("[SoundManager] Token captured:", data.color);
-                    // player1-capture.mp3 for white token captured
-                    // player2-capture.mp3 for black token captured
-                    return data.color === 'white' ? 'player1Capture' : 'player2Capture';
-                }
-                
-                // Fallback if color data is missing
-                return 'player1Capture';
-            },
-            
-            // Also listen to the notified capture event for backward compatibility
-            'token:captureNotified': (data) => {
-                // Skip if explicitly marked as simulation
-                if (data && data.forAISimulation === true && !data.isActualAIMove) {
-                    return null;
-                }
-                
-                // Skip during AI simulation unless it's the final move
-                if (this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove) {
-                    return null;
-                }
-                
-                // Play sound based on the color of the captured token
-                if (data && data.color) {
-                    console.log("[SoundManager] Token capture notified:", data.color);
-                    // player1-capture.mp3 for white token captured
-                    // player2-capture.mp3 for black token captured
-                    return data.color === 'white' ? 'player1Capture' : 'player2Capture';
-                }
-                
-                // Fallback if color data is missing
-                return 'player1Capture';
-            },
-            
-            // Game state
-            'game:over': data => {
-                // Skip if explicitly marked as simulation
-                if (data && data.forAISimulation === true) {
-                    return null;
-                }
-                
-                const game = window.game;
-                // For tournament mode
-                if (game && game.isTournamentMode) {
-                    return data.winner === 'white' ? 'matchWin' : 'matchLose';
-                }
-                
-                // For standard mode
-                return data.winner === 'white' ? 'matchWin' : 'matchLose';
-            },
-            
-            // Tournament events
-            'tournament:completed': 'winTournament',
-            'tournament:gameEnded': data => data.winner === 'white' ? 'matchWin' : 'matchLose',
-        };
+			
+			'ui:winModalShown': data => {
+				// In tournament mode, check if the winner is the player
+				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+					const playerColor = window.game.tournamentManager.playerColor;
+					return data.winner === playerColor ? 'matchWin' : 'matchLose';
+				}
+				// In standard mode, use the default behavior (white = player)
+				return data.winner === 'white' ? 'matchWin' : 'matchLose';
+			},
+			
+			// Move execution - filters to detect real vs simulation moves
+			'move:executed': (data) => {
+				// Skip if explicitly marked as simulation or during AI simulation
+				if ((data && data.forAISimulation === true) || 
+					(this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove)) {
+					return null;
+				}
+				
+				// Tournament mode - check who's moving based on player color
+				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+					const playerColor = window.game.tournamentManager.playerColor;
+					return data.player === playerColor ? 'player1Move' : 'player2Move';
+				}
+				
+				// Standard mode - use default logic (white = player1, black = player2)
+				return data.player === 'white' ? 'player1Move' : 'player2Move';
+			},
+			
+			// Move types
+			'move:simple': (data) => {
+				// Skip if explicitly marked as simulation or during AI simulation
+				if ((data && data.forAISimulation === true) || 
+					(this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove)) {
+					return null;
+				}
+				
+				// Tournament mode - check who's moving based on player color
+				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+					const playerColor = window.game.tournamentManager.playerColor;
+					return data.player === playerColor ? 'player1Move' : 'player2Move';
+				}
+				
+				// Standard mode - use default logic (white = player1, black = player2)
+				return data.player === 'white' ? 'player1Move' : 'player2Move';
+			},
+			
+			'move:push': (data) => {
+				// Skip if explicitly marked as simulation or during AI simulation
+				if ((data && data.forAISimulation === true) || 
+					(this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove)) {
+					return null;
+				}
+				
+				// Tournament mode - check who's moving based on player color
+				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+					const playerColor = window.game.tournamentManager.playerColor;
+					return data.player === playerColor ? 'player1Move' : 'player2Move';
+				}
+				
+				// Standard mode - use default logic (white = player1, black = player2)
+				return data.player === 'white' ? 'player1Move' : 'player2Move';
+			},
+			
+			// Token events - capture sounds
+			'token:captured': (data) => {
+				// Skip if explicitly marked as simulation or during AI simulation
+				if ((data && data.forAISimulation === true && !data.isActualAIMove) || 
+					(this.isAISimulating && !this.isAIFinalMoving && !data?.isActualAIMove)) {
+					return null;
+				}
+				
+				// Play sound based on the color of the captured token
+				if (data && data.color) {
+					// In tournament mode, check if the captured token belongs to player or AI
+					if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+						const playerColor = window.game.tournamentManager.playerColor;
+						// If the captured token belongs to the player, play player1Capture
+						// If it belongs to the AI, play player2Capture
+						return data.color === playerColor ? 'player1Capture' : 'player2Capture';
+					}
+					
+					// In standard mode, use the default logic
+					return data.color === 'white' ? 'player1Capture' : 'player2Capture';
+				}
+				
+				// Fallback
+				return 'player1Capture';
+			},
+						
+			// Game state
+			'game:over': data => {
+				// Skip if explicitly marked as simulation
+				if (data && data.forAISimulation === true) {
+					return null;
+				}
+				
+				// In tournament mode, check if the winner is the player
+				if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
+					const playerColor = window.game.tournamentManager.playerColor;
+					return data.winner === playerColor ? 'matchWin' : 'matchLose';
+				}
+				
+				// In standard mode, use the default behavior (white = player)
+				return data.winner === 'white' ? 'matchWin' : 'matchLose';
+			},
+			
+			// Tournament events
+			'tournament:completed': 'winTournament',
+			'tournament:gameEnded': data => {
+				// Check if the winner is the player
+				if (window.game && window.game.tournamentManager) {
+					const playerColor = window.game.tournamentManager.playerColor;
+					return data.winner === playerColor ? 'matchWin' : 'matchLose';
+				}
+				// Fallback to default if tournament manager not available
+				return data.winner === 'white' ? 'matchWin' : 'matchLose';
+			},
+		};
         
         // Add tutorial events if they exist
         if (typeof window.tutorialService !== 'undefined') {
