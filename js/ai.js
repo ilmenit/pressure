@@ -574,67 +574,84 @@ class AIPlayer {
         this.transpositionTable.set(key, value);
     }
     
-    /**
-     * Evaluate board position focusing on token captures
-     * Returns a score from 0.0 (worst) to 1.0 (best) for the given color
-     */
-    evaluatePosition(color) {
-        const oppositeColor = color === 'black' ? 'white' : 'black';
-        
-        // Count captured tokens
-        const capturedCounts = this.board.countCapturedTokens();
-        
-        // Win conditions
-        if (capturedCounts[oppositeColor] >= 6) {
-            return 1.0; // Win - captured all opponent tokens
-        }
-        
-        if (capturedCounts[color] >= 6) {
-            return 0.0; // Loss - all our tokens captured
-        }
-        
-        // Check for mobility
-        const ownMoves = this.moveManager.generatePossibleMoves(color).length;
-        if (ownMoves === 0) {
-            return 0.0; // Loss - no valid moves
-        }
-        
-        // Calculate score based on capture differential
-        // Range from -6 to 6, normalized to 0-1
-        const captureDiff = capturedCounts[oppositeColor] - capturedCounts[color];
-        
-        // Calculate threatened tokens (tokens with 3 sides surrounded)
-        let ownThreatened = 0;
-        let oppThreatened = 0;
-        
-        for (let row = 0; row < this.board.size; row++) {
-            for (let col = 0; col < this.board.size; col++) {
-                const token = this.board.getTokenAt(row, col);
-                if (!token || token.isCaptured) continue;
-                
-                const surroundedSides = this.countSurroundedSides(row, col);
-                if (surroundedSides >= 3) {
-                    if (token.color === color) {
-                        ownThreatened++;
-                    } else {
-                        oppThreatened++;
-                    }
-                }
-            }
-        }
-        
-        // Threat differential ranges from -6 to 6
-        const threatDiff = oppThreatened - ownThreatened;
-        
-        // Combined score with heavier weight on actual captures
-        const weightedDiff = (captureDiff * 0.8) + (threatDiff * 0.2);
-        
-        // Normalize to 0-1 range
-        const normalizedScore = 0.5 + (weightedDiff / 12) * 0.5;
-        
-        return Math.max(0, Math.min(1, normalizedScore));
-    }
-    
+	/**
+	 * Evaluate board position focusing on token captures
+	 * Returns a score from 0.0 (worst) to 1.0 (best) for the given color
+	 */
+	evaluatePosition(color) {
+		const oppositeColor = color === 'black' ? 'white' : 'black';
+		
+		// Count captured tokens
+		const capturedCounts = this.board.countCapturedTokens();
+		
+		// Win conditions
+		if (capturedCounts[oppositeColor] >= 6) {
+			return 1.0; // Win - captured all opponent tokens
+		}
+		
+		if (capturedCounts[color] >= 6) {
+			return 0.0; // Loss - all our tokens captured
+		}
+		
+		// Check for mobility
+		const ownMoves = this.moveManager.generatePossibleMoves(color).length;
+		if (ownMoves === 0) {
+			return 0.0; // Loss - no valid moves
+		}
+		
+		// Check if opponent has any active tokens left (win condition)
+		let hasActiveOppTokens = false;
+		for (let row = 0; row < this.board.size; row++) {
+			for (let col = 0; col < this.board.size; col++) {
+				const token = this.board.getTokenAt(row, col);
+				if (token && token.color === oppositeColor && token.isActive && !token.isCaptured) {
+					hasActiveOppTokens = true;
+					break;
+				}
+			}
+			if (hasActiveOppTokens) break;
+		}
+		
+		// If opponent has no active tokens, they'll have no valid moves on their turn = win
+		if (!hasActiveOppTokens) {
+			return 1.0; // Win - opponent has no active tokens
+		}
+		
+		// Calculate score based on capture differential
+		// Range from -6 to 6, normalized to 0-1
+		const captureDiff = capturedCounts[oppositeColor] - capturedCounts[color];
+		
+		// Calculate threatened tokens (tokens with 3 sides surrounded)
+		let ownThreatened = 0;
+		let oppThreatened = 0;
+		
+		for (let row = 0; row < this.board.size; row++) {
+			for (let col = 0; col < this.board.size; col++) {
+				const token = this.board.getTokenAt(row, col);
+				if (!token || token.isCaptured) continue;
+				
+				const surroundedSides = this.countSurroundedSides(row, col);
+				if (surroundedSides >= 3) {
+					if (token.color === color) {
+						ownThreatened++;
+					} else {
+						oppThreatened++;
+					}
+				}
+			}
+		}
+		
+		// Threat differential ranges from -6 to 6
+		const threatDiff = oppThreatened - ownThreatened;
+		
+		// Combined score with heavier weight on actual captures
+		const weightedDiff = (captureDiff * 0.8) + (threatDiff * 0.2);
+		
+		// Normalize to 0-1 range
+		const normalizedScore = 0.5 + (weightedDiff / 12) * 0.5;
+		
+		return Math.max(0, Math.min(1, normalizedScore));
+	}    
     /**
      * Count how many sides of a token are surrounded
      */
