@@ -3,8 +3,8 @@
 
 ### Components
 - 5×5 grid board
-- 6 black tokens and 6 white tokens (two-sided with neutral gray backs)
-- 12 small markers to indicate inactive tokens (optional)
+- 6 black tokens and 6 white tokens, two-sided with "captured" blue backs
+- 3 small red markers to indicate inactive pushed tokens (optional)
 
 ### Setup
 1. Place the board between both players

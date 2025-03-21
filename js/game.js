@@ -298,90 +298,94 @@ class Game {
         return false;
     }
 
-    /**
-     * Execute an AI move with proper coordination between AI and UI
-     */
-    executeAIMove() {
-        if (!this.isGameActive || this.isHumanTurn() || this.isProcessingAIMove) return;
-        
-        // Set flag to prevent multiple AI moves from being processed simultaneously
-        this.isProcessingAIMove = true;
-        
-        // Set AI strength based on current player
-        const aiLevel = this.currentPlayer === 'black' ? this.blackAILevel : this.whiteAILevel;
-        this.ai.setStrength(aiLevel);
-        
-        // Emit ai:thinking event
-        this.events.emit('ai:thinking', {
-            player: this.currentPlayer,
-            level: aiLevel
-        });
-        
-        // Define progress callback for AI to report status to UI
-        const progressCallback = (progress) => {
-            this.events.emit('ai:progress', progress);
-        };
-        
-        // Add a small delay to allow UI to update before AI calculation starts
-        setTimeout(() => {
-            // Create a timer to ensure AI has a minimum thinking time for better UX
-            const startTime = performance.now();
-            const MIN_THINKING_TIME = 500; // ms
-            
-            // Get best move from AI with progress updates
-            const aiMove = this.ai.getBestMove(this.currentPlayer, progressCallback);
-            
-            // Calculate elapsed time and enforce minimum thinking time for UX
-            const elapsedTime = performance.now() - startTime;
-            const remainingTime = Math.max(0, MIN_THINKING_TIME - elapsedTime);
-            
-            // Emit ai:moveSelected event
-            this.events.emit('ai:moveSelected', {
-                move: aiMove,
-                player: this.currentPlayer
-            });
-            
-            // Execute move after minimum thinking time has elapsed
-            setTimeout(() => {
-                if (aiMove) {
-                    // Execute the move
-                    const options = {
-                        resetActiveStatus: true,
-                        clearRedoStack: true,
-                        skipRendering: false,
-                        additionalState: {
-                            winner: this.winner,
-                            winReason: this.winReason,
-                            isGameActive: this.isGameActive
-                        }
-                    };
-                    
-                    const capturedTokens = this.gameState.applyMove(aiMove, this.currentPlayer, options);
-                    
-                    if (this.ui) {
-                        this.ui.updateUndoRedoButtons();
-                    }
-                    
-                    this.events.emit('move:executed', {
-                        move: aiMove,
-                        player: this.currentPlayer,
-                        capturedTokens: capturedTokens
-                    });
-                } else {
-                    // No valid moves - game over
-                    this.endGame(this.getOppositeColor(this.currentPlayer), 'No valid moves available');
-                }
-                
-                // Clear processing flag
-                this.isProcessingAIMove = false;
-                
-                // Emit ai:moveExecuted event
-                this.events.emit('ai:moveExecuted', {
-                    player: this.currentPlayer
-                });
-            }, remainingTime);
-        }, 50); // Small delay to allow UI rendering before AI calculation
-    }
+	/**
+	 * Execute an AI move with proper coordination between AI and UI
+	 */
+	executeAIMove() {
+		if (!this.isGameActive || this.isHumanTurn() || this.isProcessingAIMove) return;
+		
+		// Set flag to prevent multiple AI moves from being processed simultaneously
+		this.isProcessingAIMove = true;
+		
+		// Set AI strength based on current player
+		const aiLevel = this.currentPlayer === 'black' ? this.blackAILevel : this.whiteAILevel;
+		this.ai.setStrength(aiLevel);
+		
+		// Emit ai:thinking event
+		this.events.emit('ai:thinking', {
+			player: this.currentPlayer,
+			level: aiLevel
+		});
+		
+		// Define progress callback for AI to report status to UI
+		const progressCallback = (progress) => {
+			this.events.emit('ai:progress', progress);
+		};
+		
+		// Add a small delay to allow UI to update before AI calculation starts
+		setTimeout(() => {
+			// Create a timer to ensure AI has a minimum thinking time for better UX
+			const startTime = performance.now();
+			const MIN_THINKING_TIME = 500; // ms
+			
+			// Get best move from AI with progress updates
+			const aiMove = this.ai.getBestMove(this.currentPlayer, progressCallback);
+			
+			// Calculate elapsed time and enforce minimum thinking time for UX
+			const elapsedTime = performance.now() - startTime;
+			const remainingTime = Math.max(0, MIN_THINKING_TIME - elapsedTime);
+			
+			// Emit ai:moveSelected event
+			this.events.emit('ai:moveSelected', {
+				move: aiMove,
+				player: this.currentPlayer
+			});
+			
+			// Execute move after minimum thinking time has elapsed
+			setTimeout(() => {
+				if (aiMove) {
+					// Execute the move
+					const options = {
+						resetActiveStatus: true,
+						clearRedoStack: true,
+						skipRendering: false,
+						additionalState: {
+							winner: this.winner,
+							winReason: this.winReason,
+							isGameActive: this.isGameActive
+						}
+					};
+					
+					const capturedTokens = this.gameState.applyMove(aiMove, this.currentPlayer, options);
+					
+					if (this.ui) {
+						this.ui.updateUndoRedoButtons();
+					}
+					
+					// Clear processing flag BEFORE emitting move:executed
+					this.isProcessingAIMove = false;
+					
+					this.events.emit('move:executed', {
+						move: aiMove,
+						player: this.currentPlayer,
+						capturedTokens: capturedTokens
+					});
+				} else {
+					// No valid moves - game over
+					this.endGame(this.getOppositeColor(this.currentPlayer), 'No valid moves available');
+					
+					// Clear processing flag
+					this.isProcessingAIMove = false;
+				}
+				
+				// Emit ai:moveExecuted event
+				this.events.emit('ai:moveExecuted', {
+					player: this.currentPlayer
+				});
+			}, remainingTime);
+		}, 50); // Small delay to allow UI rendering before AI calculation
+	}
+
 
     /**
      * Switch to the next player's turn
