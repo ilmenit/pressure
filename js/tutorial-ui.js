@@ -383,8 +383,6 @@ class TutorialUIManager {
      * Clear all highlights
      */
     clearHighlights() {
-        // Only proceed if tutorial is active
-        if (!this.tutorialService || !this.tutorialService.isActive) return;
         
         // Clear cell highlights
         document.querySelectorAll('.cell.tutorial-highlight').forEach(cell => {

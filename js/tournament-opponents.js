@@ -60,7 +60,7 @@ class TournamentOpponents {
                 id: 4, 
                 name: "Marshal Bones", 
                 image: "cowboy_skeleton.webp", 
-                difficulty: 2, 
+                difficulty: 1, 
                 defeated: false,
                 quotes: {
                     start: ["Y'all ready for a showdown?", "This town ain't big enough for two of us!", "I'll be takin' this game, partner!"],
@@ -88,7 +88,7 @@ class TournamentOpponents {
                 id: 6, 
                 name: "Count Snoozula", 
                 image: "vampire_sloth.webp", 
-                difficulty: 3, 
+                difficulty: 2, 
                 defeated: false,
                 quotes: {
                     start: ["Let's... yawn... play.", "I'll take my time… and still win!", "Sleep is for the weak, but so are you!"],
@@ -102,7 +102,7 @@ class TournamentOpponents {
                 id: 7, 
                 name: "Funky Tusk", 
                 image: "disco_walrus.webp", 
-                difficulty: 3, 
+                difficulty: 2, 
                 defeated: false,
                 quotes: {
                     start: ["Let's boogie, baby!", "Time to dance my way to victory!", "Hope you can keep up with the groove!"],
@@ -116,7 +116,7 @@ class TournamentOpponents {
                 id: 8, 
                 name: "Detective Whiskers", 
                 image: "cat_detective.webp", 
-                difficulty: 4, 
+                difficulty: 3, 
                 defeated: false,
                 quotes: {
                     start: ["I smell something suspicious... oh, it's your strategy!", "Let's crack this case!", "I always solve the mystery... of victory!"],
@@ -130,7 +130,7 @@ class TournamentOpponents {
                 id: 9, 
                 name: "Don Bamboo", 
                 image: "tropical_gangsta_bear.webp", 
-                difficulty: 4, 
+                difficulty: 3, 
                 defeated: false,
                 quotes: {
                     start: ["Welcome to my jungle.", "You mess with the Don, you pay the price.", "Let's settle this... the bear way."],
@@ -144,7 +144,7 @@ class TournamentOpponents {
                 id: 10, 
                 name: "Chrono Tail", 
                 image: "time_travelling_raccoon.webp", 
-                difficulty: 5, 
+                difficulty: 3, 
                 defeated: false,
                 quotes: {
                     start: ["I've seen the future... and I win!", "Time waits for no one, but I can!", "Let's rewrite history—my way!"],
@@ -158,7 +158,7 @@ class TournamentOpponents {
                 id: 11, 
                 name: "Koala6502", 
                 image: "koala_hacker.webp", 
-                difficulty: 6, 
+                difficulty: 4, 
                 defeated: false,
                 quotes: {
                     start: ["Initializing strategy... booting up!", "Let's crack the code to victory!", "Access granted—to my winning streak!"],

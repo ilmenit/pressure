@@ -123,11 +123,16 @@ document.addEventListener('DOMContentLoaded', () => {
     events = window.gameEvents || new EventSystem();
     window.gameEvents = events; // Ensure global access
     
-    // Set up event listeners for tutorial events
-    events.on('tutorial:completed', () => {
-        console.log("Tutorial completed event received");
-        markTutorialAsSeen('completed-event');
-    });
+    // Set up event listeners for tutorial events	
+	events.on('tutorial:completed', () => {
+		console.log("Tutorial completed event received");
+		markTutorialAsSeen('completed-event');
+		
+		// Play tournament win sound
+		if (window.soundManager) {
+			window.soundManager.playSound('winTournament');
+		}
+	});
     
     events.on('tutorial:skipped', () => {
         console.log("Tutorial skipped event received");
