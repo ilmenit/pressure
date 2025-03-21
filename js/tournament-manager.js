@@ -1076,7 +1076,7 @@ class TournamentManager {
 	 * @param {number} maxStars - Maximum number of stars to display (default is 6)
 	 * @returns {string} HTML string with stars
 	 */
-	generateDifficultyStars(difficulty, maxStars = 6) {
+	generateDifficultyStars(difficulty, maxStars = 4) {
 		// Use HTML entities for the stars
 		const filledStar = '&starf;'; // HTML entity for filled star ★
 		const emptyStar = '&star;';   // HTML entity for empty star ☆
