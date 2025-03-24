@@ -508,9 +508,9 @@ class SoundManager {
         soundToggle.id = 'sound-toggle';
         soundToggle.className = 'sound-toggle';
         soundToggle.innerHTML = `
-            <span id="sound-on" ${!this.isSoundEnabled ? 'style="display:none"' : ''}>ðŸ”Š</span>
-            <span id="sound-off" ${this.isSoundEnabled ? 'style="display:none"' : ''}>ðŸ”‡</span>
-        `;
+            <span id="sound-on" ${!this.isSoundEnabled ? 'style="display:none"' : ''}>&#128266;</span>
+            <span id="sound-off" ${this.isSoundEnabled ? 'style="display:none"' : ''}>&#128263;</span>
+            `;
         
         // Add click event listener
         soundToggle.addEventListener('click', () => {
