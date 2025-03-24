@@ -418,11 +418,6 @@ class UIManager {
 				isCaptured: token.isCaptured
 			} : null
 		});
-		
-		// Play token selection sound if available and this is a valid token
-		if (isValidToken && window.soundManager) {
-			window.soundManager.playSound('tokenSelect');
-		}
 	}
 
     /**

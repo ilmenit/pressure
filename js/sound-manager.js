@@ -132,29 +132,6 @@ class SoundManager {
                 return data.player === 'white' ? 'player1Move' : 'player2Move';
             },
             
-            // Move types
-            'move:simple': (data) => {
-                // Tournament mode - check who's moving based on player color
-                if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
-                    const playerColor = window.game.tournamentManager.playerColor;
-                    return data.player === playerColor ? 'player1Move' : 'player2Move';
-                }
-                
-                // Standard mode - use default logic (white = player1, black = player2)
-                return data.player === 'white' ? 'player1Move' : 'player2Move';
-            },
-            
-            'move:push': (data) => {
-                // Tournament mode - check who's moving based on player color
-                if (window.game && window.game.isTournamentMode && window.game.tournamentManager) {
-                    const playerColor = window.game.tournamentManager.playerColor;
-                    return data.player === playerColor ? 'player1Move' : 'player2Move';
-                }
-                
-                // Standard mode - use default logic (white = player1, black = player2)
-                return data.player === 'white' ? 'player1Move' : 'player2Move';
-            },
-            
             // Token events - capture sounds
             'token:captured': (data) => {
                 // Play sound based on the color of the captured token
@@ -250,77 +227,103 @@ class SoundManager {
         this.addButtonClickSounds();
     }
     
-    /**
-     * Add button click sounds to various UI elements
-     */
-    addButtonClickSounds() {
-        // Add direct click listeners to all buttons
-        // This approach is more reliable than event delegation for complex apps
-        const addButtonSounds = () => {
-            // Find all buttons in the document
-            const allButtons = document.querySelectorAll('button');
-            
-            allButtons.forEach(button => {
-                // Skip buttons that already have sound handlers
-                if (button.hasAttribute('data-sound-added')) return;
-                
-                // Add the sound handler
-                button.addEventListener('click', (e) => {
-                    // Skip sound toggle button to avoid double sounds
-                    if (button.id === 'sound-toggle-btn' || button.closest('#sound-toggle')) return;
-                    
-                    // Determine which sound to play based on context
-                    if (button.closest('#main-menu') || 
-                        button.classList.contains('large-btn') ||
-                        button.closest('.tournament-controls')) {
-                        this.playSound('menuButtonClick');
-                    } else {
-                        this.playSound('buttonClick');
-                    }
-                }, true); // Use capture to ensure we get the event before stopPropagation
-                
-                // Mark the button as having a sound handler
-                button.setAttribute('data-sound-added', 'true');
-            });
-            
-            // Also add event delegation for dynamically added elements
-            document.addEventListener('click', e => {
-                // Handle cell clicks (but not token clicks)
-                const cell = e.target.closest('.cell');
-                const token = e.target.closest('.token');
-                
-                if (cell && !token && !cell.hasAttribute('data-sound-added')) {
-                    cell.setAttribute('data-sound-added', 'true');
-                    this.playSound('buttonClick');
-                }
-                
-                // Handle ladder opponent clicks in tournament mode
-                const ladderOpponent = e.target.closest('.ladder-opponent');
-                if (ladderOpponent && !ladderOpponent.hasAttribute('data-sound-added')) {
-                    ladderOpponent.setAttribute('data-sound-added', 'true');
-                    this.playSound('menuButtonClick');
-                }
-            });
-        };
-        
-        // Add sounds immediately
-        addButtonSounds();
-        
-        // Also periodically check for new buttons
-        setInterval(addButtonSounds, 1000);
-        
-        // Check after DOM changes
-        const observer = new MutationObserver(() => {
-            addButtonSounds();
-        });
-        
-        // Start observing
-        observer.observe(document.body, { 
-            childList: true, 
-            subtree: true 
-        });
-    }
-    
+	/**
+	 * Add button click sounds to various UI elements
+	 * Fixed version that prevents duplicates
+	 */
+	addButtonClickSounds() {
+		// Flag to track if document handler is already added
+		if (this._documentHandlerAdded) return;
+		this._documentHandlerAdded = true;
+
+		// Add direct click listeners to all buttons
+		const addButtonSounds = () => {
+			// Find all buttons in the document
+			const allButtons = document.querySelectorAll('button:not([data-sound-added])');
+
+			allButtons.forEach(button => {
+				// Skip buttons that already have sound handlers
+				if (button.hasAttribute('data-sound-added')) return;
+
+				// Add the sound handler
+				button.addEventListener('click', (e) => {
+					// Skip sound toggle button to avoid double sounds
+					if (button.id === 'sound-toggle-btn' || button.closest('#sound-toggle')) return;
+
+					// Determine which sound to play based on context
+					if (button.closest('#main-menu') ||
+						button.classList.contains('large-btn') ||
+						button.closest('.tournament-controls')) {
+						this.playSound('menuButtonClick');
+					} else {
+						this.playSound('buttonClick');
+					}
+
+					// Mark event as having played a sound
+					e._soundPlayed = true;
+				}, true); // Use capture to ensure we get the event before stopPropagation
+
+				// Mark the button as having a sound handler
+				button.setAttribute('data-sound-added', 'true');
+			});
+		};
+
+		// Initial application of sound handlers
+		addButtonSounds();
+
+		// Add event delegation for dynamically added elements
+		document.addEventListener('click', e => {
+			// Skip if sound already played for this event or if clicked on/within element with sound handler
+			if (e._soundPlayed || e.target.closest('[data-sound-added]')) return;
+
+			// Handle cell clicks (but not token clicks)
+			const cell = e.target.closest('.cell');
+			const token = e.target.closest('.token');
+
+			if (cell && !token && !cell.hasAttribute('data-sound-added')) {
+				cell.setAttribute('data-sound-added', 'true');
+				this.playSound('buttonClick');
+				return;
+			}
+
+			// Handle ladder opponent clicks in tournament mode
+			const ladderOpponent = e.target.closest('.ladder-opponent');
+			if (ladderOpponent && !ladderOpponent.hasAttribute('data-sound-added')) {
+				ladderOpponent.setAttribute('data-sound-added', 'true');
+				this.playSound('menuButtonClick');
+				return;
+			}
+		});
+
+		// Use MutationObserver to detect new buttons
+		const observer = new MutationObserver((mutations) => {
+			let shouldAddSounds = false;
+
+			// Check if relevant nodes were added
+			for (const mutation of mutations) {
+				if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+					for (const node of mutation.addedNodes) {
+						if (node.nodeType === 1) { // Element node
+							shouldAddSounds = true;
+							break;
+						}
+					}
+					if (shouldAddSounds) break;
+				}
+			}
+
+			if (shouldAddSounds) {
+				addButtonSounds();
+			}
+		});
+
+		// Start observing document body
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true
+		});
+	}
+
     /**
      * Play a sound if sound is enabled
      * @param {string} soundName - Name of the sound to play
@@ -505,8 +508,8 @@ class SoundManager {
         soundToggle.id = 'sound-toggle';
         soundToggle.className = 'sound-toggle';
         soundToggle.innerHTML = `
-            <span id="sound-on" ${!this.isSoundEnabled ? 'style="display:none"' : ''}>🔊</span>
-            <span id="sound-off" ${this.isSoundEnabled ? 'style="display:none"' : ''}>🔇</span>
+            <span id="sound-on" ${!this.isSoundEnabled ? 'style="display:none"' : ''}>ðŸ”Š</span>
+            <span id="sound-off" ${this.isSoundEnabled ? 'style="display:none"' : ''}>ðŸ”‡</span>
         `;
         
         // Add click event listener
