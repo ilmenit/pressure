@@ -145,17 +145,19 @@ document.addEventListener('DOMContentLoaded', () => {
         markTutorialAsSeen('menu-opened');
     });
     
-    // Reference the existing game instance or create new one
-    if (window.game) {
-        game = window.game;
-        game.events = events; // Ensure game uses our event system
-    } else {
-        // For first load, initialize as it would have done in game.js
-        game = new Game();
-        game.events = events; // Ensure game uses our event system
-        game.initUI();
-        window.game = game; // Store globally
-    }
+    // For first load, create a new game instance
+    game = new Game();
+    game.events = events; // Ensure game uses our event system
+    window.game = game; // Store globally
+    
+    // Important: Wait for all UI elements to be available before initializing UI
+    // This fixes the null element error
+    setTimeout(() => {
+        if (game) {
+            game.initUI();
+            console.log("Game UI initialized with delay");
+        }
+    }, 50);
     
     // Initialize tournament manager
     tournamentManager = new TournamentManager(game);
@@ -276,7 +278,7 @@ function setupMainMenuListeners() {
         });
     }
     
-    // NEW: Read Game Rules button
+    // Read Game Rules button
     const readRulesBtn = document.getElementById('read-rules-btn');
     if (readRulesBtn) {
         readRulesBtn.addEventListener('click', () => {
@@ -321,18 +323,12 @@ function setupMainMenuListeners() {
         // Update button text to "Exit Match"
         menuBtn.textContent = "Exit Match";
         
-        // Replace with new handler
+        // Add click handler
         menuBtn.onclick = function() {
             // Hide game screen
             const gameScreen = document.getElementById('game-screen');
             if (gameScreen) {
                 gameScreen.classList.add('hidden');
-            }
-            
-            // Hide menu screen (in case it's shown)
-            const menuScreen = document.getElementById('menu-screen');
-            if (menuScreen) {
-                menuScreen.classList.add('hidden');
             }
             
             // Based on the game mode, show appropriate screen
@@ -360,51 +356,36 @@ function setupMainMenuListeners() {
         // Update button text
         winModalMenuBtn.textContent = "Exit Match";
         
-        // Store original click handler
-        const originalClickHandler = winModalMenuBtn.onclick;
-        
-        // Replace with new handler
+        // Set click handler
         winModalMenuBtn.onclick = function() {
-            if (originalClickHandler) {
-                originalClickHandler.call(this);
+            // Hide the modal
+            const winModal = document.getElementById('win-modal');
+            if (winModal) {
+                winModal.classList.add('hidden');
             }
             
             // After original handler, redirect to appropriate screen
-            setTimeout(() => {
-                const menuScreen = document.getElementById('menu-screen');
-                if (menuScreen) {
-                    menuScreen.classList.add('hidden');
-                }
-                
-                if (game && game.isTournamentMode) {
-                    // Show tournament screen
-                    const tournamentScreen = document.getElementById('tournament-screen');
-                    if (tournamentScreen) {
-                        tournamentScreen.classList.remove('hidden');
-                        if (game.tournamentManager) {
-                            game.tournamentManager.renderLadder();
-                            setTimeout(() => game.tournamentManager.scrollToCurrentOpponent(), 100);
-                        }
+            if (game && game.isTournamentMode) {
+                // Show tournament screen
+                const tournamentScreen = document.getElementById('tournament-screen');
+                if (tournamentScreen) {
+                    tournamentScreen.classList.remove('hidden');
+                    if (game.tournamentManager) {
+                        game.tournamentManager.renderLadder();
+                        setTimeout(() => game.tournamentManager.scrollToCurrentOpponent(), 100);
                     }
-                } else {
-                    // Show standard setup
-                    showStandardSetup();
                 }
-            }, 50);
+            } else {
+                // Show standard setup
+                showStandardSetup();
+            }
         };
     }
     
     // Resume game button
     const resumeGameBtn = document.getElementById('resume-game-btn');
     if (resumeGameBtn) {
-        // Store original click handler
-        const originalClickHandler = resumeGameBtn.onclick;
-        
         resumeGameBtn.onclick = function() {
-            if (originalClickHandler) {
-                originalClickHandler.call(this);
-            }
-            
             showMainMenu();
             
             // If in standard mode
@@ -473,11 +454,6 @@ function showMainMenu() {
         mainMenu.classList.remove('hidden');
     } else {
         console.error("Missing main menu element");
-        // Fallback to showing menu-screen if main-menu doesn't exist
-        const menuScreen = document.getElementById('menu-screen');
-        if (menuScreen) {
-            menuScreen.classList.remove('hidden');
-        }
     }
 }
 
@@ -487,14 +463,13 @@ function showMainMenu() {
 function hideAllScreens() {
     // Hide all screens - use optional chaining to avoid errors if an element is missing
     const screens = [
-        'main-menu', // Added main-menu to the list to fix visibility issue
-        'menu-screen',
+        'main-menu',
         'standard-setup',
         'tournament-screen',
         'tournament-complete-screen',
         'game-screen',
         'tournament-settings',
-        'rules-screen' // Added rules screen
+        'rules-screen'
     ];
     
     screens.forEach(screenId => {

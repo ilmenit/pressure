@@ -210,9 +210,6 @@ function setupTournamentElements() {
     // Handle tournament completion visualization
     setupTournamentCompletion();
     
-    // FIXED: Removed opponent selection behavior - no more ladder item selection
-    // We no longer call setupLadderInteractions()
-    
     // Emit elements:setup event
     if (events) {
         events.emit('tournamentElements:setup', {

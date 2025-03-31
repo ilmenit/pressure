@@ -76,9 +76,18 @@ class Game {
 
     /**
      * Initialize the UI after DOM is loaded
+     * This is now called with a slight delay from index.js
+     * to ensure all DOM elements are available
      */
     initUI() {
-        this.ui = new UIManager(this);
+        // We need to be careful here as elements might not be loaded yet
+        try {
+            this.ui = new UIManager(this);
+            console.log("UI Manager initialized successfully");
+        } catch (error) {
+            console.error("Error initializing UI Manager:", error);
+            // We'll try again with a delay in index.js
+        }
     }
 
     /**
@@ -454,11 +463,4 @@ class Game {
             reason: reason
         });
     }
-    
 }
-
-// Initialize the game when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    const game = new Game();
-    game.initUI();
-});

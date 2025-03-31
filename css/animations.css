@@ -69,13 +69,10 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* FIXED: Modified hover effects to be less interactive */
 .ladder-opponent:not(.defeated):hover {
-    transform: translateY(-2px); /* Reduced movement */
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2); /* Reduced shadow */
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
 }
-
-/* FIXED: Removed selected border styling - moved to class */
 
 .ladder-opponent.defeated {
     cursor: default;
@@ -181,17 +178,16 @@
 /* Pulsing effect for current opponent indicator */
 @keyframes current-pulse {
     0% {
-        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); /* Gold glow to match the border */
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
     }
     50% {
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.7); /* Gold glow to match the border */
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
     }
     100% {
-        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); /* Gold glow to match the border */
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
     }
 }
 
-/* FIXED: Changed current-pulse animation to use gold color to match border */
 .ladder-opponent.current {
     animation: current-pulse 2s infinite;
 }

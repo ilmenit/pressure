@@ -910,38 +910,39 @@ class TournamentManager {
 
 	
 	/**
-	 * Back to main menu 
-	 */
-	backToMainMenu() {
-		const tournamentScreen = document.getElementById('tournament-screen');
-		const mainMenu = document.getElementById('main-menu');
-		
-		// Clean up tournament-specific UI elements
-		this.cleanupTournamentUI();
-		
-		if (tournamentScreen) {
-			tournamentScreen.classList.add('hidden');
-		}
-		
-		if (mainMenu) {
-			mainMenu.classList.remove('hidden');
-			
-			// Set focus to first button in main menu for keyboard accessibility
-			const firstButton = mainMenu.querySelector('button');
-			if (firstButton) {
-				setTimeout(() => {
-					firstButton.focus();
-				}, 100);
-			}
-		}
-		
-		// Emit menu:shown event
-		if (this.events) {
-			this.events.emit('menu:shown', {
-				from: 'tournament'
-			});
-		}
-	}    
+     * Back to main menu 
+     */
+    backToMainMenu() {
+        const tournamentScreen = document.getElementById('tournament-screen');
+        const mainMenu = document.getElementById('main-menu');
+        
+        // Clean up tournament-specific UI elements
+        this.cleanupTournamentUI();
+        
+        if (tournamentScreen) {
+            tournamentScreen.classList.add('hidden');
+        }
+        
+        if (mainMenu) {
+            mainMenu.classList.remove('hidden');
+            
+            // Set focus to first button in main menu for keyboard accessibility
+            const firstButton = mainMenu.querySelector('button');
+            if (firstButton) {
+                setTimeout(() => {
+                    firstButton.focus();
+                }, 100);
+            }
+        }
+        
+        // Emit menu:shown event
+        if (this.events) {
+            this.events.emit('menu:shown', {
+                from: 'tournament'
+            });
+        }
+    }
+    
     /**
      * Start a match with the current opponent
      */

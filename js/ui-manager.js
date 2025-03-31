@@ -104,26 +104,28 @@ class UIManager {
     }
 
     /**
-     * Set up event listeners for UI elements
+     * Set up event listeners for UI elements with null checks
      */
     setupEventListeners() {
-        // Board cell click events
-        this.board.boardElement.addEventListener('click', (event) => {
-            if (!this.game.isGameActive) return;
-            
-            // Only skip click handling if drag truly occurred and mouse was moved
-            if (this.dragHandler.dragOccurred && this.dragHandler.mouseWasMoved) {
-                return;
-            }
-            
-            const cell = event.target.closest('.cell');
-            if (!cell) return;
-            
-            const row = parseInt(cell.dataset.row);
-            const col = parseInt(cell.dataset.col);
-            
-            this.handleCellClick(row, col);
-        });
+        // Board cell click events - board element should always exist
+        if (this.board && this.board.boardElement) {
+            this.board.boardElement.addEventListener('click', (event) => {
+                if (!this.game.isGameActive) return;
+                
+                // Only skip click handling if drag truly occurred and mouse was moved
+                if (this.dragHandler.dragOccurred && this.dragHandler.mouseWasMoved) {
+                    return;
+                }
+                
+                const cell = event.target.closest('.cell');
+                if (!cell) return;
+                
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                
+                this.handleCellClick(row, col);
+            });
+        }
         
         // Player type buttons
         document.querySelectorAll('.player-type-btn').forEach(btn => {
@@ -160,41 +162,62 @@ class UIManager {
             });
         });
         
-        // Start game button
-        document.getElementById('start-game-btn').addEventListener('click', () => {
-            this.startGame();
-        });
+        // Standard game start button - exists in standard setup
+        const standardStartBtn = document.getElementById('standard-start-game-btn');
+        if (standardStartBtn) {
+            standardStartBtn.addEventListener('click', () => {
+                this.startGame();
+            });
+        }
         
         // Undo button
-        document.getElementById('undo-btn').addEventListener('click', () => {
-            this.undoMove();
-        });
+        const undoBtn = document.getElementById('undo-btn');
+        if (undoBtn) {
+            undoBtn.addEventListener('click', () => {
+                this.undoMove();
+            });
+        }
         
         // Redo button
-        document.getElementById('redo-btn').addEventListener('click', () => {
-            this.redoMove();
-        });
+        const redoBtn = document.getElementById('redo-btn');
+        if (redoBtn) {
+            redoBtn.addEventListener('click', () => {
+                this.redoMove();
+            });
+        }
         
         // Menu button
-        document.getElementById('menu-btn').addEventListener('click', () => {
-            this.openMenu();
-        });
+        const menuBtn = document.getElementById('menu-btn');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', () => {
+                this.openMenu();
+            });
+        }
         
         // Resume game button
-        document.getElementById('resume-game-btn').addEventListener('click', () => {
-            this.resumeGame();
-        });
+        const resumeGameBtn = document.getElementById('resume-game-btn');
+        if (resumeGameBtn) {
+            resumeGameBtn.addEventListener('click', () => {
+                this.resumeGame();
+            });
+        }
 
         // Win modal buttons
-        document.getElementById('win-modal-undo').addEventListener('click', () => {
-            document.getElementById('win-modal').classList.add('hidden');
-            this.undoMove();
-        });
+        const winModalUndo = document.getElementById('win-modal-undo');
+        if (winModalUndo) {
+            winModalUndo.addEventListener('click', () => {
+                document.getElementById('win-modal').classList.add('hidden');
+                this.undoMove();
+            });
+        }
         
-        document.getElementById('win-modal-menu').addEventListener('click', () => {
-            document.getElementById('win-modal').classList.add('hidden');
-            this.openMenu();
-        });
+        const winModalMenu = document.getElementById('win-modal-menu');
+        if (winModalMenu) {
+            winModalMenu.addEventListener('click', () => {
+                document.getElementById('win-modal').classList.add('hidden');
+                this.openMenu();
+            });
+        }
         
         // Window resize event
         window.addEventListener('resize', () => {
@@ -244,16 +267,27 @@ class UIManager {
         this.clearSelection();
         
         // Get player types
-        const blackPlayerType = document.querySelector('.player-type-btn[data-player="black"].active').dataset.type;
-        const whitePlayerType = document.querySelector('.player-type-btn[data-player="white"].active').dataset.type;
+        const blackPlayerTypeElem = document.querySelector('.player-type-btn[data-player="black"].active');
+        const whitePlayerTypeElem = document.querySelector('.player-type-btn[data-player="white"].active');
+        
+        if (!blackPlayerTypeElem || !whitePlayerTypeElem) {
+            console.error("Could not find player type elements");
+            return;
+        }
+        
+        const blackPlayerType = blackPlayerTypeElem.dataset.type;
+        const whitePlayerType = whitePlayerTypeElem.dataset.type;
         
         // Get AI levels
-        const blackAILevel = blackPlayerType === 'ai' 
-            ? parseInt(document.querySelector('.ai-level-btn[data-player="black"].active').dataset.level)
+        const blackAILevelElem = document.querySelector('.ai-level-btn[data-player="black"].active');
+        const whiteAILevelElem = document.querySelector('.ai-level-btn[data-player="white"].active');
+        
+        const blackAILevel = (blackPlayerType === 'ai' && blackAILevelElem) 
+            ? parseInt(blackAILevelElem.dataset.level)
             : 1;
         
-        const whiteAILevel = whitePlayerType === 'ai'
-            ? parseInt(document.querySelector('.ai-level-btn[data-player="white"].active').dataset.level)
+        const whiteAILevel = (whitePlayerType === 'ai' && whiteAILevelElem)
+            ? parseInt(whiteAILevelElem.dataset.level)
             : 1;
         
         // Initialize the game
@@ -263,11 +297,14 @@ class UIManager {
         document.getElementById('win-modal').classList.add('hidden');
         
         // Show game screen, hide menu screen
-        document.getElementById('menu-screen').classList.add('hidden');
+        document.getElementById('standard-setup').classList.add('hidden');
         document.getElementById('game-screen').classList.remove('hidden');
         
         // Show resume game button in menu for when user returns
-        document.getElementById('resume-game-btn').classList.remove('hidden');
+        const resumeGameBtn = document.getElementById('resume-game-btn');
+        if (resumeGameBtn) {
+            resumeGameBtn.classList.remove('hidden');
+        }
         
         // Update undo/redo buttons
         this.updateUndoRedoButtons();
@@ -297,8 +334,11 @@ class UIManager {
             if (typeof window.showStandardSetup === 'function') {
                 window.showStandardSetup();
             } else {
-                // Fallback to menu screen
-                document.getElementById('menu-screen').classList.remove('hidden');
+                // Fallback to main menu
+                const mainMenu = document.getElementById('main-menu');
+                if (mainMenu) {
+                    mainMenu.classList.remove('hidden');
+                }
             }
         } else {
             // In tournament mode, show tournament screen
@@ -311,8 +351,11 @@ class UIManager {
                     setTimeout(() => this.game.tournamentManager.scrollToCurrentOpponent(), 100);
                 }
             } else {
-                // Fallback to menu screen
-                document.getElementById('menu-screen').classList.remove('hidden');
+                // Fallback to main menu
+                const mainMenu = document.getElementById('main-menu');
+                if (mainMenu) {
+                    mainMenu.classList.remove('hidden');
+                }
             }
         }
         
@@ -327,7 +370,7 @@ class UIManager {
      * Resume the game
      */
     resumeGame() {
-        document.getElementById('menu-screen').classList.add('hidden');
+        document.getElementById('standard-setup').classList.add('hidden');
         document.getElementById('game-screen').classList.remove('hidden');
         
         // Emit UI event
@@ -531,11 +574,18 @@ class UIManager {
     }
 
     /**
-     * Update the state of undo/redo buttons
+     * Update the state of undo/redo buttons with improved error handling
      */
     updateUndoRedoButtons() {
+        // Safely get button elements - they might not exist yet
         const undoBtn = document.getElementById('undo-btn');
         const redoBtn = document.getElementById('redo-btn');
+        
+        // Early return if buttons don't exist yet
+        if (!undoBtn && !redoBtn) {
+            console.debug("Undo/redo buttons not found in DOM yet");
+            return;
+        }
         
         // Handle tournament mode - hide undo/redo buttons
         if (this.game.isTournamentMode) {
@@ -547,12 +597,17 @@ class UIManager {
             if (redoBtn) redoBtn.classList.remove('hidden');
         }
         
-        if (undoBtn) {
-            undoBtn.disabled = !this.gameState.canUndo();
-        }
-        
-        if (redoBtn) {
-            redoBtn.disabled = !this.gameState.canRedo();
+        // Update button disabled state
+        try {
+            if (undoBtn) {
+                undoBtn.disabled = !this.gameState || !this.gameState.canUndo();
+            }
+            
+            if (redoBtn) {
+                redoBtn.disabled = !this.gameState || !this.gameState.canRedo();
+            }
+        } catch (error) {
+            console.error("Error updating undo/redo buttons:", error);
         }
     }
 
@@ -624,12 +679,3 @@ Board.prototype.renderBoard = function() {
         window.game.ui.makeTokensDraggable();
     }
 };
-
-// Initialize drag support when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if the game instance exists
-    if (window.game && window.game.ui) {
-        // Drag events are set up in the UIManager constructor via UIDragHandler
-        console.log("UI Manager initialized");
-    }
-});
