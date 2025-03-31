@@ -291,22 +291,34 @@ class UIManager {
         // Hide game screen
         document.getElementById('game-screen').classList.add('hidden');
         
-        // If not in tournament mode, go to standard setup instead of main menu
+        // Based on game mode, show appropriate screen
         if (!this.game.isTournamentMode) {
             // Go to One on One setup
             if (typeof window.showStandardSetup === 'function') {
                 window.showStandardSetup();
             } else {
-                // Fallback to main menu if function not available
+                // Fallback to menu screen
                 document.getElementById('menu-screen').classList.remove('hidden');
             }
         } else {
-            // In tournament mode, go to the menu screen
-            document.getElementById('menu-screen').classList.remove('hidden');
+            // In tournament mode, show tournament screen
+            const tournamentScreen = document.getElementById('tournament-screen');
+            if (tournamentScreen) {
+                tournamentScreen.classList.remove('hidden');
+                // Update tournament ladder if needed
+                if (this.game.tournamentManager) {
+                    this.game.tournamentManager.renderLadder();
+                    setTimeout(() => this.game.tournamentManager.scrollToCurrentOpponent(), 100);
+                }
+            } else {
+                // Fallback to menu screen
+                document.getElementById('menu-screen').classList.remove('hidden');
+            }
         }
         
         // Emit UI event
-        this.events.emit('ui:menuOpened', {
+        this.events.emit('ui:gameExited', {
+            mode: this.game.isTournamentMode ? 'tournament' : 'standard',
             timestamp: Date.now()
         });
     }

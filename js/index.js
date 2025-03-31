@@ -318,29 +318,48 @@ function setupMainMenuListeners() {
     // Menu button in game controls
     const menuBtn = document.getElementById('menu-btn');
     if (menuBtn) {
-        // Store original click handler
-        const originalClickHandler = menuBtn.onclick;
+        // Update button text to "Exit Match"
+        menuBtn.textContent = "Exit Match";
         
-        // Replace with new handler that shows main menu
+        // Replace with new handler
         menuBtn.onclick = function() {
-            if (originalClickHandler) {
-                originalClickHandler.call(this);
+            // Hide game screen
+            const gameScreen = document.getElementById('game-screen');
+            if (gameScreen) {
+                gameScreen.classList.add('hidden');
             }
             
-            // After original handler opens the menu-screen, we hide it and show main menu
-            setTimeout(() => {
-                const menuScreen = document.getElementById('menu-screen');
-                if (menuScreen) {
-                    menuScreen.classList.add('hidden');
+            // Hide menu screen (in case it's shown)
+            const menuScreen = document.getElementById('menu-screen');
+            if (menuScreen) {
+                menuScreen.classList.add('hidden');
+            }
+            
+            // Based on the game mode, show appropriate screen
+            if (game && game.isTournamentMode) {
+                // For tournament mode, show tournament ladder
+                const tournamentScreen = document.getElementById('tournament-screen');
+                if (tournamentScreen) {
+                    tournamentScreen.classList.remove('hidden');
+                    // Update tournament ladder if needed
+                    if (game.tournamentManager) {
+                        game.tournamentManager.renderLadder();
+                        setTimeout(() => game.tournamentManager.scrollToCurrentOpponent(), 100);
+                    }
                 }
-                showMainMenu();
-            }, 50);
+            } else {
+                // For standard mode, show One on One Game setup
+                showStandardSetup();
+            }
         };
     }
     
     // Win modal menu button redirect to main menu
     const winModalMenuBtn = document.getElementById('win-modal-menu');
     if (winModalMenuBtn) {
+        // Update button text
+        winModalMenuBtn.textContent = "Exit Match";
+        
         // Store original click handler
         const originalClickHandler = winModalMenuBtn.onclick;
         
@@ -350,13 +369,27 @@ function setupMainMenuListeners() {
                 originalClickHandler.call(this);
             }
             
-            // After original handler, we redirect to main menu
+            // After original handler, redirect to appropriate screen
             setTimeout(() => {
                 const menuScreen = document.getElementById('menu-screen');
                 if (menuScreen) {
                     menuScreen.classList.add('hidden');
                 }
-                showMainMenu();
+                
+                if (game && game.isTournamentMode) {
+                    // Show tournament screen
+                    const tournamentScreen = document.getElementById('tournament-screen');
+                    if (tournamentScreen) {
+                        tournamentScreen.classList.remove('hidden');
+                        if (game.tournamentManager) {
+                            game.tournamentManager.renderLadder();
+                            setTimeout(() => game.tournamentManager.scrollToCurrentOpponent(), 100);
+                        }
+                    }
+                } else {
+                    // Show standard setup
+                    showStandardSetup();
+                }
             }, 50);
         };
     }
