@@ -114,64 +114,64 @@ class Board {
         }
     }
 
-	/**
-	 * Render the current state of the board
-	 */
-	renderBoard() {
-		// CRITICAL FIX: Skip rendering during AI simulation
-		if (this.events && this.events.isInSimulation()) return;
-		
-		if (!this.boardElement) return;
-		
-		const cells = this.boardElement.querySelectorAll('.cell');
-		
-		cells.forEach(cell => {
-			// Clear existing content
-			cell.innerHTML = '';
-			
-			const row = parseInt(cell.dataset.row);
-			const col = parseInt(cell.dataset.col);
-			const token = this.grid[row][col];
-			
-			if (token) {
-				const tokenElement = document.createElement('div');
-				
-				// Set token color class
-				if (token.isCaptured) {
-					tokenElement.className = 'token captured';
-				} else {
-					tokenElement.className = `token ${token.color}`;
-				}
-				
-				// Mark inactive tokens
-				if (!token.isActive) {
-					tokenElement.classList.add('inactive');
-				}
-				
-				cell.appendChild(tokenElement);
-			}
-			
-			// Add last move indicators
-			if (this.lastMoveFrom && row === this.lastMoveFrom.row && col === this.lastMoveFrom.col) {
-				const indicator = document.createElement('div');
-				indicator.className = 'last-move-indicator';
-				cell.appendChild(indicator);
-			}
-			
-			if (this.lastMoveTo && row === this.lastMoveTo.row && col === this.lastMoveTo.col) {
-				const indicator = document.createElement('div');
-				indicator.className = 'last-move-indicator';
-				cell.appendChild(indicator);
-			}
-		});
-		
-		// Emit board:rendered event
-		if (this.events) {
-			this.events.emit('board:rendered', {
-				timestamp: Date.now()
-			});
-		}
-	}
+    /**
+     * Render the current state of the board
+     */
+    renderBoard() {
+        // CRITICAL FIX: Skip rendering during AI simulation
+        if (this.events && this.events.isInSimulation()) return;
+        
+        if (!this.boardElement) return;
+        
+        const cells = this.boardElement.querySelectorAll('.cell');
+        
+        cells.forEach(cell => {
+            // Clear existing content
+            cell.innerHTML = '';
+            
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            const token = this.grid[row][col];
+            
+            if (token) {
+                const tokenElement = document.createElement('div');
+                
+                // Set token color class
+                if (token.isCaptured) {
+                    tokenElement.className = 'token captured';
+                } else {
+                    tokenElement.className = `token ${token.color}`;
+                }
+                
+                // Mark inactive tokens
+                if (!token.isActive) {
+                    tokenElement.classList.add('inactive');
+                }
+                
+                cell.appendChild(tokenElement);
+            }
+            
+            // Add last move indicators
+            if (this.lastMoveFrom && row === this.lastMoveFrom.row && col === this.lastMoveFrom.col) {
+                const indicator = document.createElement('div');
+                indicator.className = 'last-move-indicator';
+                cell.appendChild(indicator);
+            }
+            
+            if (this.lastMoveTo && row === this.lastMoveTo.row && col === this.lastMoveTo.col) {
+                const indicator = document.createElement('div');
+                indicator.className = 'last-move-indicator';
+                cell.appendChild(indicator);
+            }
+        });
+        
+        // Emit board:rendered event
+        if (this.events) {
+            this.events.emit('board:rendered', {
+                timestamp: Date.now()
+            });
+        }
+    }
 
     /**
      * Set the last move for highlighting
@@ -392,30 +392,31 @@ class Board {
         return gridCopy;
     }
 
-	/**
-	 * Restore the board from a deep copy
-	 */
-	restoreFromCopy(gridCopy) {
-		for (let row = 0; row < this.size; row++) {
-			for (let col = 0; col < this.size; col++) {
-				this.grid[row][col] = gridCopy[row][col];
-			}
-		}
-		
-		// CRITICAL FIX: Skip rendering during simulation
-		if (this.events && this.events.isInSimulation()) {
-			return; // Skip rendering completely during AI simulation
-		}
-		
-		this.renderBoard();
-		
-		// Emit board:restored event - this is filtered by our previous fix
-		if (this.events) {
-			this.events.emit('board:restored', {
-				timestamp: Date.now()
-			});
-		}
-	}
+    /**
+     * Restore the board from a deep copy
+     */
+    restoreFromCopy(gridCopy) {
+        for (let row = 0; row < this.size; row++) {
+            for (let col = 0; col < this.size; col++) {
+                this.grid[row][col] = gridCopy[row][col];
+            }
+        }
+        
+        // CRITICAL FIX: Skip rendering during simulation
+        if (this.events && this.events.isInSimulation()) {
+            return; // Skip rendering completely during AI simulation
+        }
+        
+        this.renderBoard();
+        
+        // Emit board:restored event - this is filtered by our previous fix
+        if (this.events) {
+            this.events.emit('board:restored', {
+                timestamp: Date.now()
+            });
+        }
+    }
+
     /**
      * Clear all highlights from the board cells
      */
@@ -458,5 +459,12 @@ class Board {
                 positions: positions
             });
         }
+    }
+    
+    /**
+     * Check if a position is valid (within board bounds)
+     */
+    isValidPosition(row, col) {
+        return row >= 0 && row < this.size && col >= 0 && col < this.size;
     }
 }
