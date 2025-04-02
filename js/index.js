@@ -127,11 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	events.on('tutorial:completed', () => {
 		console.log("Tutorial completed event received");
 		markTutorialAsSeen('completed-event');
-		
-		// Play tournament win sound
-		if (window.soundManager) {
-			window.soundManager.playSound('winTournament');
-		}
 	});
     
     events.on('tutorial:skipped', () => {
